@@ -1,0 +1,22 @@
+{
+  "name": "flycommc2-agent",
+  "version": "1.0.0",
+  "description": "FlycommC2 RF Threat Detection Agent — cellular anomaly detection with ClickHouse + Claude AI",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dashboard": "node -e \"require('./server').startServer()\"",
+    "start:all": "node -e \"require('./server').startServer(); require('./index');\""
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@clickhouse/client": "^1.8.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

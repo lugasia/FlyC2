@@ -5,10 +5,6 @@ let client = null;
 
 function getClient() {
   if (!client) {
-    const credentials = Buffer.from(
-      `${config.clickhouse.username}:${config.clickhouse.password}`
-    ).toString('base64');
-
     client = createClient({
       url: `https://${config.clickhouse.host}:${config.clickhouse.port}`,
       database: config.clickhouse.database,
@@ -19,8 +15,10 @@ function getClient() {
       keep_alive: {
         enabled: false,
       },
-      http_headers: {
-        Authorization: `Basic ${credentials}`,
+      clickhouse_settings: {
+        connect_timeout: 60,
+        receive_timeout: 300,
+        send_timeout: 300,
       },
     });
 
@@ -52,7 +50,8 @@ async function queryWithRetry(queryOpts, retries = 2) {
         err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT' ||
         (err.message && (err.message.includes('socket hang up') ||
          err.message.includes('ECONNRESET') || err.message.includes('aborted') ||
-         err.message.includes('Timeout')));
+         err.message.includes('Timeout') || err.message.includes('TLS') ||
+         err.message.includes('disconnected')));
       if (isTransient && attempt < retries) {
         console.log(`[DB] Transient error (attempt ${attempt + 1}/${retries + 1}), retrying in ${attempt + 1}s: ${err.message}`);
         // Force new client on retry — old connections may be stale

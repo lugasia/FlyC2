@@ -17,8 +17,7 @@ function getClient() {
       request_timeout: 300000,
       max_open_connections: 1,
       keep_alive: {
-        enabled: true,
-        idle_socket_ttl: 2500,
+        enabled: false,
       },
       http_headers: {
         Authorization: `Basic ${credentials}`,

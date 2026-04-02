@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FlycommC2 — SOC Threat Dashboard</title>
-<link rel="icon" type="image/png" href="/rsu-icon.png">
+<link rel="icon" type="image/png" href="/rsu-icon-sm.png">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -86,23 +86,27 @@
     z-index: 10;
   }
   .sidebar-logo {
-    padding: 14px 16px;
+    padding: 16px 14px 14px;
     border-bottom: 1px solid var(--border);
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
-  .sidebar-logo span { color: var(--accent); }
+  .sidebar-logo-icon { width: 32px; height: 32px; filter: invert(1) brightness(1.5); }
+  .sidebar-logo-text { font-family: 'IBM Plex Sans', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 2px; color: var(--text-primary); }
+  .sidebar-logo-text span { color: var(--accent); }
+  .sidebar-logo-sub { font-size: 8px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--text-dim); margin-top: 1px; font-family: 'IBM Plex Sans', sans-serif; }
   .sidebar-section {
-    padding: 6px 10px;
+    padding: 10px 14px;
     border-bottom: 1px solid var(--border);
   }
   .sidebar-section-title {
-    font-size: 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9px;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
     color: var(--text-dim);
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     font-weight: 600;
   }
 
@@ -110,94 +114,128 @@
   .mode-toggle {
     display: flex;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 4px;
     overflow: hidden;
   }
   .mode-btn {
     flex: 1;
-    padding: 8px 0;
+    padding: 7px 0;
     text-align: center;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
-    font-family: inherit;
+    font-family: 'JetBrains Mono', monospace;
     cursor: pointer;
     border: none;
     background: transparent;
     color: var(--text-dim);
-    transition: all 0.2s;
-    letter-spacing: 0.5px;
+    transition: all 0.15s ease;
+    letter-spacing: 1px;
   }
   .mode-btn:hover { color: var(--text-secondary); background: rgba(255,255,255,0.03); }
   .mode-btn.active { background: var(--accent); color: #fff; }
   .mode-btn.active-rsu { background: var(--purple); color: #fff; }
   .mode-desc {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--text-dim);
     margin-top: 6px;
     line-height: 1.4;
+    font-family: 'IBM Plex Sans', sans-serif;
   }
 
   /* Sidebar settings controls */
   .sidebar-control { margin-bottom: 10px; }
   .sidebar-control-label {
-    font-size: 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9px;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     color: var(--text-dim);
-    margin-bottom: 4px;
-    font-weight: 500;
+    margin-bottom: 5px;
+    font-weight: 600;
   }
   .sidebar-time-btns { display: flex; gap: 4px; }
-  .sidebar-time-btns .time-btn { flex: 1; padding: 5px 0; font-size: 11px; text-align: center; }
+  .sidebar-time-btns .time-btn {
+    flex: 1; padding: 6px 0; font-size: 11px; text-align: center;
+    font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px;
+  }
   .sidebar-input {
     width: 100%;
-    background: var(--bg-card);
+    background: var(--bg-primary);
     color: var(--text-primary);
     border: 1px solid var(--border);
-    padding: 6px 10px;
-    border-radius: 4px;
+    padding: 7px 10px;
+    border-radius: 3px;
     font-size: 11px;
-    font-family: inherit;
+    font-family: 'JetBrains Mono', monospace;
+    transition: border-color 0.15s ease;
   }
-  .sidebar-input::placeholder { color: var(--text-dim); }
+  .sidebar-input::placeholder { color: var(--text-dim); font-family: 'IBM Plex Sans', sans-serif; }
   .sidebar-input:focus { outline: none; border-color: var(--accent); }
   .sidebar-btn {
     width: 100%;
-    padding: 6px 0;
-    border-radius: 4px;
+    padding: 7px 0;
+    border-radius: 3px;
     border: 1px solid var(--border);
     background: transparent;
     color: var(--text-secondary);
-    font-size: 11px;
-    font-family: inherit;
+    font-size: 10px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
   }
-  .sidebar-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+  .sidebar-btn:hover { border-color: var(--accent); color: var(--text-primary); background: rgba(64,169,255,0.05); }
+
+  /* Scan action buttons */
+  .sidebar-scan-row { display: flex; gap: 6px; align-items: stretch; }
   .sidebar-start-btn {
-    width: 100%;
     background: var(--green);
-    color: #fff;
+    color: #080c14;
     border: none;
-    padding: 8px 0;
-    border-radius: 4px;
+    padding: 10px 0;
+    border-radius: 3px;
     cursor: pointer;
     font-weight: 700;
-    font-size: 12px;
-    font-family: inherit;
+    font-size: 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    transition: all 0.2s;
+    letter-spacing: 1.5px;
+    transition: all 0.15s ease;
   }
-  .sidebar-start-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .sidebar-start-btn:not(:disabled):hover { filter: brightness(1.15); }
-  .sidebar-status { font-size: 10px; color: var(--text-dim); margin-top: 4px; text-align: center; }
+  .sidebar-start-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .sidebar-start-btn:not(:disabled):hover { filter: brightness(1.1); }
+  .sidebar-clear-btn {
+    padding: 0 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-dim);
+    font-size: 9px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .sidebar-clear-btn:hover { border-color: var(--critical); color: var(--critical); }
+  .sidebar-status {
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 6px;
+    text-align: center;
+    font-family: 'IBM Plex Sans', sans-serif;
+    letter-spacing: 0.5px;
+  }
 
   .sidebar-footer {
     margin-top: auto;
-    padding: 10px 16px;
+    padding: 10px 14px;
     border-top: 1px solid var(--border);
-    font-size: 10px;
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
     color: var(--text-dim);
     display: flex;
     justify-content: space-between;
@@ -291,7 +329,6 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 6px;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
   }
@@ -309,20 +346,22 @@
 
   /* Tables */
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  #scanTable { table-layout: fixed; width: 100%; }
   th {
     text-align: left; padding: 5px 8px;
-    background: rgba(0,0,0,0.3);
+    background: var(--bg-secondary, #0f1520);
     color: var(--text-dim); font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.5px;
-    font-size: 11px; position: sticky; top: 0; z-index: 1;
+    font-size: 11px; position: sticky; top: 0; z-index: 10;
     font-family: 'IBM Plex Sans', system-ui, sans-serif;
   }
   td {
     padding: 5px 8px; border-top: 1px solid rgba(42,58,78,0.4);
     color: var(--text-secondary);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     font-size: 12px;
   }
+  #scanTable td { overflow: hidden; text-overflow: ellipsis; }
   tr:hover td { background: rgba(59,130,246,0.05); }
 
   .badge { display:inline-block; padding:2px 7px; border-radius:4px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
@@ -700,9 +739,9 @@
     font-family: 'IBM Plex Sans', system-ui, sans-serif;
   }
   .setup-card {
-    background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
     padding: 28px 32px; width: 420px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4), 0 0 60px rgba(64,169,255,0.06);
   }
   .setup-card h3 {
     font-size: 13px; font-weight: 700; margin-bottom: 20px; color: var(--text-secondary);
@@ -795,6 +834,11 @@
   .rsu-card:hover { background: rgba(6, 182, 212, 0.06); border-color: var(--cyan); }
   .rsu-card.has-anomalies { border-color: var(--critical); }
   .rsu-card.has-anomalies[data-deployment="outdoor"] { border: 1.5px dashed var(--critical); }
+  .rsu-card.real-time-alert { border-color: var(--critical); animation: rsu-alert-pulse 2s ease-in-out infinite; }
+  @keyframes rsu-alert-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+    50% { box-shadow: 0 0 12px 4px rgba(239, 68, 68, 0.3); }
+  }
   .rsu-card-selected { box-shadow: 0 0 0 2px var(--cyan); }
   .rsu-card-header {
     display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
@@ -835,52 +879,182 @@
   .rsu-legend-swatch.indoor { border: 1.5px solid var(--border); background: transparent; }
   .rsu-legend-swatch.healthy { background: transparent; color: var(--green); display: flex; align-items: center; justify-content: center; font-size: 12px; }
   .rsu-legend-swatch.anomalies { background: transparent; color: var(--critical); display: flex; align-items: center; justify-content: center; font-size: 12px; }
+
+  /* === ADMIN FULL-PAGE VIEWS === */
+  .admin-view { display:none;flex:1;flex-direction:column;overflow:hidden;background:var(--bg-primary); }
+  .admin-view.active { display:flex; }
+  .admin-page-header { padding:24px 32px 16px;border-bottom:1px solid var(--border); }
+  .admin-page-header h1 { font-size:22px;font-weight:700;color:var(--text-primary);margin:0;font-family:'IBM Plex Sans',sans-serif; }
+  .admin-page-header p { font-size:12px;color:var(--text-dim);margin:4px 0 0;font-family:'IBM Plex Sans',sans-serif; }
+  .admin-page-header .admin-header-row { display:flex;justify-content:space-between;align-items:center; }
+  .admin-page-body { flex:1;overflow-y:auto;padding:20px 32px 32px; }
+  .admin-create-btn { background:var(--accent);color:#fff;border:none;padding:8px 20px;border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;letter-spacing:0.3px; }
+  .admin-create-btn:hover { filter:brightness(1.1); }
+  .admin-search { background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:8px 14px 8px 36px;border-radius:6px;font-size:12px;width:320px;font-family:'IBM Plex Sans',sans-serif; }
+  .admin-search:focus { outline:none;border-color:var(--accent); }
+  .admin-search-wrap { position:relative;margin:16px 0; }
+  .admin-search-wrap::before { content:'\1F50D';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;opacity:0.4; }
+
+  /* Admin cards (orgs) */
+  .admin-org-card { background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px 20px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:border-color 0.15s,background 0.15s; }
+  .admin-org-card:hover { border-color:var(--accent);background:var(--bg-elevated); }
+  .admin-org-icon { width:40px;height:40px;border-radius:8px;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:18px;flex-shrink:0; }
+  .admin-org-info { flex:1;min-width:0; }
+  .admin-org-name { font-size:14px;font-weight:700;color:var(--text-primary);font-family:'IBM Plex Sans',sans-serif; }
+  .admin-org-id { font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-top:1px; }
+  .admin-org-meta { display:flex;align-items:center;gap:12px;flex-shrink:0; }
+  .admin-badge { padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;font-family:'IBM Plex Sans',sans-serif;letter-spacing:0.5px; }
+  .admin-badge-demo { background:rgba(139,92,246,0.15);color:#a78bfa; }
+  .admin-badge-prod { background:rgba(34,197,94,0.15);color:#22c55e; }
+  .admin-org-date { font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace; }
+
+  /* Admin tables */
+  .admin-table { width:100%;border-collapse:collapse; }
+  .admin-table th { text-align:left;color:var(--text-dim);font-size:9px;text-transform:uppercase;letter-spacing:1.2px;padding:10px 12px;border-bottom:1px solid var(--border);font-family:'IBM Plex Sans',sans-serif;font-weight:600; }
+  .admin-table td { padding:12px;border-bottom:1px solid var(--border);color:var(--text-secondary);font-size:12px; }
+  .admin-table tr:hover td { background:rgba(255,255,255,0.015); }
+  .admin-table .mono { font-family:'JetBrains Mono',monospace;font-size:11px; }
+  .admin-action-btn { background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px;font-size:14px;transition:color 0.1s; }
+  .admin-action-btn:hover { color:var(--text-primary); }
+  .admin-action-btn.danger:hover { color:var(--critical); }
+  .admin-status-dot { width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px; }
+  .admin-color-dot { width:14px;height:14px;border-radius:50%;display:inline-block; }
+
+  /* Admin sidebar nav */
+  .admin-nav-item { display:flex;align-items:center;gap:10px;padding:9px 14px;color:var(--text-dim);font-size:12px;font-family:'IBM Plex Sans',sans-serif;font-weight:500;cursor:pointer;border-radius:6px;margin:1px 8px;transition:all 0.1s; }
+  .admin-nav-item:hover { background:rgba(255,255,255,0.03);color:var(--text-secondary); }
+  .admin-nav-item.active { background:var(--accent);color:#fff; }
+  .admin-nav-item svg { width:18px;height:18px;flex-shrink:0; }
+  .admin-nav-divider { font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--text-dim);padding:14px 14px 6px;font-weight:600;font-family:'IBM Plex Sans',sans-serif; }
+
+  /* Admin form (inline edit) */
+  .admin-form { background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:20px; }
+  .admin-form h3 { font-size:14px;font-weight:700;color:var(--text-primary);margin:0 0 16px;font-family:'IBM Plex Sans',sans-serif; }
+  .admin-form-field { margin-bottom:12px; }
+  .admin-form-field label { display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:4px;font-weight:600;font-family:'IBM Plex Sans',sans-serif; }
+  .admin-form-field input,.admin-form-field select,.admin-form-field textarea { width:100%;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:5px;font-size:12px;font-family:'JetBrains Mono',monospace; }
+  .admin-form-field input:focus,.admin-form-field select:focus,.admin-form-field textarea:focus { outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg); }
+  .admin-form-row { display:flex;gap:12px; }
+  .admin-form-row > .admin-form-field { flex:1; }
+  .admin-form-actions { display:flex;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--border); }
+  .admin-btn { padding:7px 16px;border-radius:5px;font-family:'IBM Plex Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-secondary);transition:all 0.1s; }
+  .admin-btn:hover { border-color:var(--accent);color:var(--text-primary); }
+  .admin-btn-primary { background:var(--accent);color:#fff;border-color:var(--accent); }
+  .admin-btn-primary:hover { filter:brightness(1.1); }
+  .admin-btn-danger { color:var(--critical);border-color:var(--critical); }
+  .admin-btn-danger:hover { background:var(--critical-bg); }
+
+  /* Login error state */
+  .setup-field input.input-error { border-color: var(--critical); box-shadow: 0 0 0 2px var(--critical-bg); }
+  .setup-status.error { display: block; background: var(--critical-bg); color: var(--critical); border: 1px solid rgba(255,59,59,0.2); }
+  .setup-status.success { display: block; background: var(--green-bg); color: var(--green); border: 1px solid rgba(0,230,118,0.2); }
+  .setup-btn-primary.loading { pointer-events: none; opacity: 0.7; }
+  .setup-btn-primary.loading::after { content: ''; display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; margin-left: 8px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Admin license badge */
+  .admin-badge-license { background: var(--accent-bg); color: var(--accent); border: 1px solid rgba(64,169,255,0.2); }
+
+  /* Admin View as Org button */
+  .admin-view-as-btn { background: var(--accent-bg); color: var(--accent); border: 1px solid rgba(64,169,255,0.2); font-size: 10px; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: all 0.15s; white-space: nowrap; }
+  .admin-view-as-btn:hover { background: var(--accent); color: #fff; }
+
+  /* Scan table improvements */
+  #scanTable thead th { position: sticky; top: 0; background: var(--bg-card); z-index: 2; border-bottom: 2px solid var(--border-active); }
+  #scanTable tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
+  #scanTable tbody tr:hover { background: rgba(64,169,255,0.06); }
+  #scanTable { table-layout: fixed; }
+
+  /* Severity badges in table */
+  .sev-badge { display: inline-block; padding: 1px 8px; border-radius: 3px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
+  .sev-badge-critical { background: var(--critical-bg); color: var(--critical); }
+  .sev-badge-high { background: var(--high-bg); color: var(--high); }
+  .sev-badge-medium { background: var(--medium-bg); color: var(--medium); }
+  .sev-badge-low { background: var(--low-bg); color: var(--low); }
+
+  /* Fleet card anomaly pulse */
+  .rsu-card.has-anomaly { animation: criticalPulse 2s ease-in-out infinite; }
+  .rsu-card:hover { border-color: var(--border-active); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .rsu-card.selected { border-color: var(--accent); background: rgba(64,169,255,0.04); }
+
+  /* Impersonation banner styling */
+  #impersonationBanner { font-family: 'IBM Plex Sans', sans-serif; }
+
+  /* Admin cluster tooltip */
+  .admin-cluster-tooltip { background: var(--bg-card) !important; color: var(--text-primary) !important; border: 1px solid var(--border) !important; font-family: 'IBM Plex Sans', sans-serif !important; font-size: 11px !important; }
+
+  /* Empty state styling for charts */
+  .chart-empty { display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 11px; gap: 6px; padding: 20px; }
+  .chart-empty svg { opacity: 0.5; }
 </style>
 </head>
 <body>
 
-<!-- Full-screen setup page (auth gate) -->
+<!-- Full-screen login page (auth gate) -->
 <div class="setup-page" id="setupPage">
   <div class="setup-logo"><img src="/rsu-icon-sm.png" width="48" height="48" style="vertical-align:middle;margin-right:12px;filter:invert(1) brightness(1.5);">FLYCOMM<span>C2</span></div>
   <div class="setup-subtitle">Spectral Awareness Platform</div>
   <div class="setup-card">
-    <h3>Sign In — ClickHouse</h3>
+    <h3>Sign In</h3>
     <div class="setup-field">
-      <label>Host</label>
-      <input type="text" id="setupHost" placeholder="your-host.clickhouse.cloud" autocomplete="off">
-    </div>
-    <div style="display:flex;gap:10px;">
-      <div class="setup-field" style="flex:1;">
-        <label>Port</label>
-        <input type="number" id="setupPort" value="8443">
-      </div>
-      <div class="setup-field" style="flex:2;">
-        <label>Database</label>
-        <input type="text" id="setupDatabase" value="default">
-      </div>
-    </div>
-    <div class="setup-field">
-      <label>Username</label>
-      <input type="text" id="setupUsername" placeholder="username" autocomplete="username">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="you@company.com" autocomplete="email">
     </div>
     <div class="setup-field">
       <label>Password</label>
-      <input type="password" id="setupPassword" placeholder="password" autocomplete="current-password">
+      <input type="password" id="loginPassword" placeholder="password" autocomplete="current-password">
     </div>
     <div class="setup-actions">
-      <button class="setup-btn setup-btn-secondary" onclick="setupTest()">Test</button>
-      <button class="setup-btn setup-btn-primary" onclick="setupConnect()">Sign In</button>
+      <button class="setup-btn setup-btn-primary" onclick="doLogin()" style="flex:1;">Sign In</button>
     </div>
     <div class="setup-status" id="setupStatus"></div>
   </div>
-  <div class="setup-footer">v0.1 &nbsp;|&nbsp; Flycomm Ltd.</div>
+  <div class="setup-footer" id="setupFooter">Powered by FlycommC2 &nbsp;|&nbsp; v2.0</div>
 </div>
 
 <div class="app-layout" id="appLayout" style="display:none;">
 
 <!-- LEFT SIDEBAR -->
 <div class="sidebar" id="sidebar">
-  <div class="sidebar-logo"><img src="/rsu-icon-sm.png" width="36" height="36" style="vertical-align:middle;margin-right:8px;filter:invert(1) brightness(1.5);"><span style="font-size:18px;letter-spacing:1.5px;">FLYCOMM<span>C2</span></span></div>
+  <div class="sidebar-logo">
+    <img src="/rsu-icon-sm.png" class="sidebar-logo-icon">
+    <div>
+      <div class="sidebar-logo-text">FLYCOMM<span>C2</span></div>
+      <div class="sidebar-logo-sub">Spectral Awareness</div>
+    </div>
+  </div>
+  <div class="sidebar-section" style="display:flex;align-items:center;justify-content:space-between;padding:6px 14px;">
+    <span id="userInfoBar" style="display:none;font-size:10px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;"></span>
+    <button id="logoutBtn" onclick="logout()" style="display:none;background:none;border:1px solid var(--border);color:var(--text-dim);font-size:9px;padding:3px 8px;border-radius:3px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;letter-spacing:0.5px;">Logout</button>
+  </div>
+
+  <!-- Admin Nav (super_admin only) -->
+  <div id="adminNavSection" style="display:none;">
+    <div class="admin-nav-divider">Super Admin</div>
+    <div class="admin-nav-item" onclick="adminNavigate('orgs')" id="adminNavOrgs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Organizations
+    </div>
+    <div class="admin-nav-item" onclick="adminNavigate('clusters')" id="adminNavClusters">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3a14.5 14.5 0 0 1 0 18M12 3a14.5 14.5 0 0 0 0 18M3 12h18"/></svg>
+      Clusters
+    </div>
+    <div class="admin-nav-item" onclick="adminNavigate('rsus')" id="adminNavRsus">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12.55a11 11 0 0 1 14 0"/><path d="M8.5 16.35a6 6 0 0 1 7 0"/><circle cx="12" cy="20" r="1"/></svg>
+      RSUs
+    </div>
+    <div class="admin-nav-item" onclick="adminNavigate('users')" id="adminNavUsers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Users
+    </div>
+    <div class="admin-nav-item" onclick="adminNavigate('settings')" id="adminNavSettings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </div>
+    <div style="padding:6px 8px;margin-top:2px;">
+      <button class="sidebar-btn" onclick="adminExitToSOC()" style="width:100%;font-size:9px;color:var(--accent);border-color:var(--accent);">&#8592; Back to SOC</button>
+    </div>
+  </div>
 
   <!-- Mode Toggle -->
   <div class="sidebar-section">
@@ -903,6 +1077,13 @@
         <button class="time-btn" id="timeBtn7d" onclick="selectTimeRange(168)">7d</button>
         <button class="time-btn" id="timeBtn30d" onclick="selectTimeRange(720)">30d</button>
       </div>
+      <div class="sidebar-control-label" style="margin-top:8px;">Custom Range</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input type="date" class="sidebar-input" id="customDateFrom" style="flex:1;font-size:10px;padding:4px 6px;" title="From">
+        <span style="color:var(--text-dim);font-size:10px;">→</span>
+        <input type="date" class="sidebar-input" id="customDateTo" style="flex:1;font-size:10px;padding:4px 6px;" title="To">
+      </div>
+      <button class="sidebar-btn" style="margin-top:4px;font-size:10px;" onclick="applyCustomDateRange()">Apply Range</button>
     </div>
 
     <!-- Settings: Area -->
@@ -930,7 +1111,10 @@
 
   <!-- Scan Action -->
   <div class="sidebar-section">
-    <button class="sidebar-start-btn" id="startScanBtn" onclick="toggleScan()" disabled>START SCAN</button>
+    <div class="sidebar-scan-row">
+      <button class="sidebar-start-btn" id="startScanBtn" onclick="toggleScan()" disabled style="flex:1;">START SCAN</button>
+      <button class="sidebar-clear-btn" id="clearScanBtn" onclick="clearScanResults()">CLEAR</button>
+    </div>
     <div class="sidebar-status" id="scanStatusText">Select time and area</div>
   </div>
 
@@ -952,12 +1136,12 @@
   </div>
 
   <!-- Source Legend -->
-  <div class="sidebar-section" style="padding:8px 16px;">
+  <div class="sidebar-section">
     <div class="sidebar-section-title">Data Sources</div>
-    <div style="font-size:10px;display:flex;flex-direction:column;gap:3px;">
-      <div><span class="source-badge src-measurements"></span> Measurements</div>
-      <div><span class="source-badge src-bad"></span> Bad Measurements</div>
-      <div><span class="source-badge src-enriched"></span> Sites (enriched)</div>
+    <div style="font-size:9px;display:flex;flex-direction:column;gap:4px;font-family:'IBM Plex Sans',sans-serif;">
+      <div style="display:flex;align-items:center;gap:6px;"><span class="source-badge src-measurements"></span> Measurements</div>
+      <div style="display:flex;align-items:center;gap:6px;"><span class="source-badge src-bad"></span> Bad Measurements</div>
+      <div style="display:flex;align-items:center;gap:6px;"><span class="source-badge src-enriched"></span> Sites (enriched)</div>
     </div>
   </div>
 
@@ -975,6 +1159,13 @@
 <!-- MAIN CONTENT -->
 <div class="main-content">
 
+<!-- Admin full-page view (hidden by default) -->
+<div class="admin-view" id="adminView">
+  <div id="adminPageContent" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
+</div>
+
+<!-- SOC Dashboard (shown by default) -->
+<div id="socView" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
 <div class="header">
   <div class="header-title">FLYCOMM<span>C2</span> &mdash; <span id="modeLabel">SDK</span></div>
   <div class="header-center">
@@ -986,6 +1177,8 @@
     <span id="scanAnomalyCount" style="color:var(--critical);font-weight:700;font-size:11px;">--</span>
   </div>
   <div class="header-status">
+    <!-- Admin Panel button (super_admin only, visible in SOC view) -->
+    <button id="adminPanelBtn" onclick="adminEnter();adminNavigate('orgs');" style="display:none;background:none;border:1px solid var(--accent);color:var(--accent);font-size:9px;font-weight:700;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;letter-spacing:0.5px;margin-right:8px;white-space:nowrap;">ADMIN PANEL</button>
     <!-- Alert badge -->
     <div style="position:relative;display:inline-block;">
       <button id="bellBtn" onclick="toggleBellDropdown()" style="background:none;border:none;cursor:pointer;position:relative;padding:2px 6px;display:flex;align-items:center;">
@@ -1009,7 +1202,7 @@
 <div class="dashboard">
 
   <!-- Row 1: 4 Focused stat cards -->
-  <div class="stat-row" style="grid-template-columns:repeat(4,1fr);">
+  <div class="stat-row" style="grid-template-columns:repeat(5,1fr);">
     <div class="stat-card c-blue">
       <div class="stat-label">Scan Status</div>
       <div class="stat-value" id="statScanned">--</div>
@@ -1028,6 +1221,11 @@
       <div class="stat-label">Active Cells</div>
       <div class="stat-value" id="statActiveCells">0</div>
       <div class="stat-sub" id="statActiveCellsSub">--</div>
+    </div>
+    <div class="stat-card c-blue">
+      <div class="stat-label">Active Devices</div>
+      <div class="stat-value" id="statActiveDevices" style="color:var(--accent);">0</div>
+      <div class="stat-sub" id="statActiveDevicesSub">in scan range</div>
     </div>
   </div>
 
@@ -1106,22 +1304,22 @@
         <span id="filterButtons"><!-- populated dynamically --></span>
         <span class="filter-btn-clear" id="filterClearBtn" onclick="clearAnomalyFilters()" style="display:none;">CLEAR ALL</span>
       </div>
-      <div class="panel-body panel-collapse-content" style="max-height:500px;">
+      <div class="panel-body panel-collapse-content" style="max-height:500px;overflow-y:auto;overflow-x:hidden;">
         <table id="scanTable">
           <thead>
             <tr>
-              <th style="width:30px"></th>
-              <th class="sortable" data-sort="severity">Severity</th>
-              <th class="sortable" data-sort="time">Time</th>
-              <th class="sortable" data-sort="cell">Cell ID</th>
-              <th class="sortable" data-sort="mcc">MCC/PLMN</th>
-              <th>Operator</th>
-              <th class="sortable" data-sort="rat">RAT</th>
-              <th class="sortable" data-sort="rsrp">RSRP</th>
-              <th class="sortable" data-sort="snr">SNR</th>
-              <th class="sortable" data-sort="ta">TA</th>
-              <th>Source</th>
-              <th class="sortable" data-sort="flags">Flags</th>
+              <th style="width:2%"></th>
+              <th class="sortable" data-sort="severity" style="width:6%">Severity</th>
+              <th class="sortable" data-sort="time" style="width:12%">Time</th>
+              <th class="sortable" data-sort="cell" style="width:8%">Cell ID</th>
+              <th class="sortable" data-sort="mcc" style="width:7%">MCC/PLMN</th>
+              <th class="sortable" data-sort="operator" style="width:8%">Operator</th>
+              <th class="sortable" data-sort="rat" style="width:4%">RAT</th>
+              <th class="sortable" data-sort="rsrp" style="width:5%">RSRP</th>
+              <th class="sortable" data-sort="snr" style="width:4%">SNR</th>
+              <th class="sortable" data-sort="ta" style="width:3%">TA</th>
+              <th class="sortable" data-sort="source" style="width:5%">Source</th>
+              <th class="sortable" data-sort="flags" style="width:36%">Flags</th>
             </tr>
           </thead>
           <tbody id="scanBody">
@@ -1235,15 +1433,43 @@
   </div>
   <!-- Tabs -->
   <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg-primary);">
-    <button class="rsu-tab active" data-tab="cellular" onclick="switchRSUTab('cellular')">Cellular</button>
-    <button class="rsu-tab" data-tab="qoe" onclick="switchRSUTab('qoe')">QoE</button>
-    <button class="rsu-tab" data-tab="wifi" onclick="switchRSUTab('wifi')">WiFi</button>
+    <button class="rsu-tab active" data-tab="modem" onclick="switchRSUTab('modem')">MODEM</button>
+    <button class="rsu-tab" data-tab="cellular-qoe" onclick="switchRSUTab('cellular-qoe')">CELLULAR</button>
+    <button class="rsu-tab" data-tab="wifi-qoe" onclick="switchRSUTab('wifi-qoe')">WIFI</button>
     <button class="rsu-tab" data-tab="gnss" onclick="switchRSUTab('gnss')">GNSS</button>
-    <button class="rsu-tab" data-tab="alerts" onclick="switchRSUTab('alerts')">Alerts</button>
+    <button class="rsu-tab" data-tab="spectrum" onclick="switchRSUTab('spectrum')">RF SPECTRUM</button>
+    <button class="rsu-tab" data-tab="alerts" onclick="switchRSUTab('alerts')">ALERTS</button>
   </div>
   <div class="rsu-panel-body">
-    <!-- Cellular Tab -->
-    <div class="rsu-tab-content" id="rsuTabCellular">
+    <!-- Modem Tab (default active) -->
+    <div class="rsu-tab-content" id="rsuTabModem">
+      <div class="rsu-panel-section">
+        <div class="rsu-panel-section-title">Modem State</div>
+        <div id="rsuPanelModemState"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
+      </div>
+      <div class="rsu-panel-section">
+        <div class="rsu-panel-section-title">RF Details</div>
+        <div id="rsuPanelModemRF"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
+      </div>
+      <div class="rsu-panel-section">
+        <div class="rsu-panel-section-title">Per-Antenna (RX Diversity)</div>
+        <div id="rsuPanelModemAntenna"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
+      </div>
+      <div class="rsu-panel-section">
+        <div class="rsu-panel-section-title">Cell Identity</div>
+        <div id="rsuPanelModemCell"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
+      </div>
+      <div class="rsu-panel-section">
+        <div class="rsu-panel-section-title">QoE — Network Performance</div>
+        <div id="rsuPanelModemQoe"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
+      </div>
+      <div class="rsu-panel-section">
+        <div class="rsu-panel-section-title">Throughput</div>
+        <div id="rsuPanelModemThroughput"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
+      </div>
+    </div>
+    <!-- Cellular+QoE Tab -->
+    <div class="rsu-tab-content" id="rsuTabCellular-qoe" style="display:none;">
       <div class="rsu-panel-section">
         <div class="rsu-panel-section-title">Signal Quality</div>
         <div id="rsuPanelSignal"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
@@ -1252,9 +1478,6 @@
         <div class="rsu-panel-section-title">Cell Info</div>
         <div id="rsuPanelCell"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
       </div>
-    </div>
-    <!-- QoE Tab -->
-    <div class="rsu-tab-content" id="rsuTabQoe" style="display:none;">
       <div class="rsu-panel-section">
         <div class="rsu-panel-section-title">Network Quality</div>
         <div id="rsuPanelQoe"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
@@ -1262,6 +1485,17 @@
       <div class="rsu-panel-section">
         <div class="rsu-panel-section-title">Throughput</div>
         <div id="rsuPanelThroughput"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
+      </div>
+    </div>
+    <!-- WiFi+QoE Tab -->
+    <div class="rsu-tab-content" id="rsuTabWifi-qoe" style="display:none;">
+      <div class="rsu-panel-section">
+        <div class="rsu-panel-section-title">WiFi Networks</div>
+        <div id="rsuPanelWifi"><div style="color:var(--text-dim);font-size:10px;">Loading...</div></div>
+      </div>
+      <div class="rsu-panel-section">
+        <div class="rsu-panel-section-title">Latest Scan</div>
+        <div id="rsuPanelWifiLatest"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
       </div>
     </div>
     <!-- GNSS Tab -->
@@ -1275,15 +1509,16 @@
         <div id="rsuPanelSats"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
       </div>
     </div>
-    <!-- WiFi Tab -->
-    <div class="rsu-tab-content" id="rsuTabWifi" style="display:none;">
+    <!-- RF Spectrum Tab -->
+    <div class="rsu-tab-content" id="rsuTabSpectrum" style="display:none;">
       <div class="rsu-panel-section">
-        <div class="rsu-panel-section-title">WiFi Networks</div>
-        <div id="rsuPanelWifi"><div style="color:var(--text-dim);font-size:10px;">Loading...</div></div>
-      </div>
-      <div class="rsu-panel-section">
-        <div class="rsu-panel-section-title">Latest Scan</div>
-        <div id="rsuPanelWifiLatest"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
+        <div style="display:flex;gap:4px;margin-bottom:8px;">
+          <button class="rsu-tab active" style="font-size:9px;padding:2px 8px;" onclick="switchSpectrumSub('cellular')" data-spectrum="cellular" id="specBtnCellular">Cellular</button>
+          <button class="rsu-tab" style="font-size:9px;padding:2px 8px;" onclick="switchSpectrumSub('wifi')" data-spectrum="wifi" id="specBtnWifi">Wi-Fi</button>
+          <button class="rsu-tab" style="font-size:9px;padding:2px 8px;" onclick="switchSpectrumSub('gnss')" data-spectrum="gnss" id="specBtnGnss">GNSS</button>
+        </div>
+        <canvas id="rsuSpectrumCanvas" width="360" height="180" style="width:100%;height:180px;background:var(--bg-primary);border-radius:6px;"></canvas>
+        <div id="rsuSpectrumLegend" style="font-size:9px;color:var(--text-dim);margin-top:4px;"></div>
       </div>
     </div>
     <!-- Alerts Tab -->
@@ -1335,6 +1570,8 @@
   </div>
 </div>
 
+</div><!-- end #socView -->
+
 <!-- Cell Threat Profile (fixed right panel) -->
 <div class="cell-profile" id="cellProfile">
   <div class="cell-profile-header">
@@ -1351,19 +1588,65 @@
 
 <script>
 // ---------------------------------------------------------------------------
-// AUTH GATE — check if ClickHouse is configured, show setup or dashboard
+// API_BASE — set via ?api= query param or default to same-origin (local dev)
+// For Vercel: load dashboard with ?api=https://your-laptop:3000
 // ---------------------------------------------------------------------------
+var API_BASE = (function() {
+  var params = new URLSearchParams(window.location.search);
+  var base = params.get('api') || localStorage.getItem('flyc2_api_base') || '';
+  if (base) {
+    base = base.replace(/\/+$/, ''); // strip trailing slash
+    localStorage.setItem('flyc2_api_base', base);
+  }
+  return base;
+})();
+
+// ---------------------------------------------------------------------------
+// AUTH — JWT login, token management, authFetch wrapper
+// ---------------------------------------------------------------------------
+var authToken = localStorage.getItem('flyc2_token') || null;
+var currentUser = null;
+var currentOrg = null;
+
+function authHeaders() {
+  var h = { 'Content-Type': 'application/json' };
+  if (authToken) h['Authorization'] = 'Bearer ' + authToken;
+  return h;
+}
+
+function authFetch(url, opts) {
+  opts = opts || {};
+  opts.headers = Object.assign(authHeaders(), opts.headers || {});
+  return fetch(url, opts).then(function(r) {
+    if (r.status === 401) { logout(); throw new Error('Session expired'); }
+    return r;
+  });
+}
+
+function logout() {
+  authToken = null;
+  currentUser = null;
+  currentOrg = null;
+  localStorage.removeItem('flyc2_token');
+  showSetupPage();
+}
+
+// Check for existing token on load
 (function() {
-  // Always show sign-in page first — user must authenticate every session
-  // Pre-fill fields if server already has credentials configured
-  fetch('/api/status').then(function(r) { return r.json(); }).then(function(status) {
-    if (status.configured) {
-      // Pre-fill hint that credentials exist
-      var hostEl = document.getElementById('setupHost');
-      if (hostEl && !hostEl.value) hostEl.placeholder = 'Credentials configured — re-enter to sign in';
-    }
+  if (authToken) {
+    fetch(API_BASE + '/api/auth/me', { headers: authHeaders() })
+      .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function(j) {
+        currentUser = j.user;
+        currentOrg = j.org;
+        applyBranding();
+        applyLicenseMode();
+        showDashboard();
+      })
+      .catch(function() { logout(); });
+  } else {
     showSetupPage();
-  }).catch(function() { showSetupPage(); });
+  }
 })();
 
 function showSetupPage() {
@@ -1374,7 +1657,6 @@ function showSetupPage() {
 function showDashboard() {
   document.getElementById('setupPage').classList.add('hidden');
   document.getElementById('appLayout').style.display = '';
-  // Trigger dashboard init (map, SSE, etc.) — only once
   if (!window._dashboardInitialized) {
     window._dashboardInitialized = true;
     initDashboard();
@@ -1383,61 +1665,118 @@ function showDashboard() {
 
 function setupShowStatus(msg, isError) {
   var el = document.getElementById('setupStatus');
-  el.style.display = 'block';
-  el.style.background = isError ? 'var(--critical-bg)' : 'var(--green-bg)';
-  el.style.color = isError ? 'var(--critical)' : 'var(--green)';
+  el.className = 'setup-status ' + (isError ? 'error' : 'success');
   el.textContent = msg;
 }
 
-function getSetupData() {
-  return {
-    host: document.getElementById('setupHost').value.trim(),
-    port: parseInt(document.getElementById('setupPort').value, 10) || 8443,
-    database: document.getElementById('setupDatabase').value.trim() || 'default',
-    username: document.getElementById('setupUsername').value.trim(),
-    password: document.getElementById('setupPassword').value,
-  };
-}
+function doLogin() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var password = document.getElementById('loginPassword').value;
+  var emailEl = document.getElementById('loginEmail');
+  var passEl = document.getElementById('loginPassword');
+  var btn = document.querySelector('.setup-btn-primary');
 
-function setupTest() {
-  var data = getSetupData();
-  if (!data.host || !data.username) { setupShowStatus('Host and username required', true); return; }
-  setupShowStatus('Testing...', false);
-  fetch('/api/settings/clickhouse', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  }).then(function(r) { return r.json(); }).then(function(j) {
-    setupShowStatus(j.ok ? 'Connection successful' : (j.error || 'Failed'), !j.ok);
-  }).catch(function(e) { setupShowStatus('Error: ' + e.message, true); });
-}
+  // Clear previous error states
+  emailEl.classList.remove('input-error');
+  passEl.classList.remove('input-error');
 
-function setupConnect() {
-  var data = getSetupData();
-  if (!data.host || !data.username) { setupShowStatus('Host and username required', true); return; }
-  setupShowStatus('Connecting...', false);
-  fetch('/api/settings/clickhouse', {
+  if (!email || !password) {
+    setupShowStatus('Email and password required', true);
+    if (!email) emailEl.classList.add('input-error');
+    if (!password) passEl.classList.add('input-error');
+    return;
+  }
+
+  // Loading state
+  if (btn) { btn.classList.add('loading'); btn.textContent = 'Signing In'; }
+  setupShowStatus('Authenticating...', false);
+
+  fetch(API_BASE + '/api/auth/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ email: email, password: password }),
   }).then(function(r) { return r.json(); }).then(function(j) {
+    if (btn) { btn.classList.remove('loading'); btn.textContent = 'Sign In'; }
     if (j.ok) {
-      setupShowStatus('Connected! Launching dashboard...', false);
-      setTimeout(function() { showDashboard(); }, 800);
+      authToken = j.token;
+      currentUser = j.user;
+      currentOrg = j.org;
+      localStorage.setItem('flyc2_token', authToken);
+      if (currentOrg) localStorage.setItem('flyc2_org', JSON.stringify(currentOrg));
+      applyBranding();
+      applyLicenseMode();
+      setupShowStatus('Welcome, ' + (currentUser.name || currentUser.email), false);
+      setTimeout(function() { showDashboard(); }, 600);
     } else {
-      setupShowStatus(j.error || 'Connection failed', true);
+      setupShowStatus(j.error || 'Invalid credentials', true);
+      passEl.classList.add('input-error');
+      passEl.value = '';
+      passEl.focus();
     }
-  }).catch(function(e) { setupShowStatus('Error: ' + e.message, true); });
+  }).catch(function(e) {
+    if (btn) { btn.classList.remove('loading'); btn.textContent = 'Sign In'; }
+    setupShowStatus('Connection error — check server', true);
+  });
 }
 
-// Enter key on setup fields triggers sign-in
+// White-label branding — update logo + org name from org data
+function applyBranding() {
+  var logoText = document.querySelector('.sidebar-logo-text');
+  var logoSub = document.querySelector('.sidebar-logo-sub');
+  var logoImg = document.querySelector('.sidebar-logo-icon');
+  if (currentOrg && currentOrg.logo_url) {
+    if (logoImg) { logoImg.src = currentOrg.logo_url; logoImg.style.filter = 'none'; }
+  }
+  if (currentOrg && currentOrg.name) {
+    if (logoText) logoText.innerHTML = currentOrg.name;
+    if (logoSub) logoSub.textContent = 'Spectral Awareness';
+  }
+  // Show admin nav items for super_admin
+  var isSuperAdmin = currentUser && currentUser.role === 'super_admin';
+  var adminNav = document.getElementById('adminNavSection');
+  if (adminNav) adminNav.style.display = isSuperAdmin ? '' : 'none';
+  var adminPanelBtn = document.getElementById('adminPanelBtn');
+  if (adminPanelBtn) adminPanelBtn.style.display = isSuperAdmin ? '' : 'none';
+  // Show logout button
+  var logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) logoutBtn.style.display = '';
+  // Show user info
+  var userInfo = document.getElementById('userInfoBar');
+  if (userInfo && currentUser) {
+    userInfo.textContent = currentUser.name || currentUser.email;
+    userInfo.style.display = '';
+  }
+}
+
+// Apply license mode — restrict SDK/RSU toggle based on org license
+function applyLicenseMode() {
+  var sdkBtn = document.getElementById('modeBtnSDK');
+  var rsuBtn = document.getElementById('modeBtnRSU');
+
+  if (!currentOrg || currentOrg.license === 'BOTH') {
+    // Show both toggles
+    if (sdkBtn) { sdkBtn.style.display = ''; sdkBtn.disabled = false; sdkBtn.style.opacity = '1'; }
+    if (rsuBtn) { rsuBtn.style.display = ''; rsuBtn.disabled = false; rsuBtn.style.opacity = '1'; }
+  } else if (currentOrg.license === 'SDK') {
+    if (sdkBtn) { sdkBtn.style.display = ''; sdkBtn.disabled = false; sdkBtn.style.opacity = '1'; }
+    if (rsuBtn) { rsuBtn.style.display = 'none'; }
+    switchMode('SDK');
+  } else if (currentOrg.license === 'RSU') {
+    if (sdkBtn) { sdkBtn.style.display = 'none'; }
+    if (rsuBtn) { rsuBtn.style.display = ''; rsuBtn.disabled = false; rsuBtn.style.opacity = '1'; }
+    switchMode('RSU');
+  }
+}
+
+// Enter key on login fields triggers sign-in
 document.addEventListener('DOMContentLoaded', function() {
-  ['setupHost','setupPort','setupDatabase','setupUsername','setupPassword'].forEach(function(id) {
+  ['loginEmail','loginPassword'].forEach(function(id) {
     var el = document.getElementById(id);
-    if (el) el.addEventListener('keydown', function(e) { if (e.key === 'Enter') setupConnect(); });
+    if (el) el.addEventListener('keydown', function(e) { if (e.key === 'Enter') doLogin(); });
   });
 });
 
-var REFRESH_MS = 30000;
-var countdown = 30;
+var REFRESH_MS = 60000;
+var countdown = 60;
 
 // ---------------------------------------------------------------------------
 // DEPLOYMENT MODE (SDK / RSU)
@@ -1469,7 +1808,7 @@ function switchMode(mode) {
   if (scanPanelRow) scanPanelRow.style.display = mode === 'RSU' ? 'none' : '';
 
   // Notify server and reload
-  fetch('/api/mode', {
+  authFetch(API_BASE + '/api/mode', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mode: mode }),
@@ -1482,12 +1821,17 @@ function switchMode(mode) {
       if (mapLayerAnomalies) mapLayerAnomalies.clearLayers();
       if (mapLayerSiteLines) mapLayerSiteLines.clearLayers();
       if (mapLayerRSU) mapLayerRSU.clearLayers();
+      if (mapLayerSites) mapLayerSites.clearLayers();
+      rsuBandsAccumulator = {};
+      rsuTechAccumulator = {};
+      sitesCache = [];
       // Reset stat cards
       ['statScanned','statThreatLevel','statTopThreat','statActiveCells'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = '--';
       });
       loadRSUDevices();
+      loadKnownSites();
       if (scanStarted) refreshAll();
     }
   }).catch(function(e) { console.error('Mode switch error:', e); });
@@ -1503,7 +1847,7 @@ function updateRSUFleetVisibility() {
 
 // Load current mode from server on init
 function loadCurrentMode() {
-  fetch('/api/mode').then(function(r) { return r.json(); }).then(function(j) {
+  authFetch(API_BASE + '/api/mode').then(function(r) { return r.json(); }).then(function(j) {
     if (j.ok && j.data && j.data.mode) {
       currentDeploymentMode = j.data.mode;
       switchMode(j.data.mode);
@@ -1539,6 +1883,8 @@ function updateRSUStatus() {
 // SCAN CONTROL STATE — user must select time + area before scanning
 // ---------------------------------------------------------------------------
 var selectedHours = null;     // null = not selected yet; 24, 72, or 168
+var customStartDate = null;   // ISO string for custom range start (null = use hours from now)
+var customEndDate = null;     // ISO string for custom range end (null = now)
 var customBbox = null;        // { latMin, lngMin, latMax, lngMax }
 var scanStarted = false;      // true after first START SCAN click
 var refreshInterval = null;   // setInterval handle for auto-refresh
@@ -1549,12 +1895,37 @@ var drawnItems = null;        // FeatureGroup for Leaflet.Draw
 
 function selectTimeRange(hours) {
   selectedHours = hours;
+  customStartDate = null;
+  customEndDate = null;
   document.getElementById('timeBtn24h').classList.toggle('active', hours === 24);
   document.getElementById('timeBtn3d').classList.toggle('active', hours === 72);
   document.getElementById('timeBtn7d').classList.toggle('active', hours === 168);
   document.getElementById('timeBtn30d').classList.toggle('active', hours === 720);
+  document.getElementById('customDateFrom').style.borderColor = '';
+  document.getElementById('customDateTo').style.borderColor = '';
   updateScanReadiness();
-  // If scan already started, re-scan with new time range
+  if (scanStarted) { resetAccumulator(); refreshAll(); }
+}
+
+function applyCustomDateRange() {
+  var fromEl = document.getElementById('customDateFrom');
+  var toEl = document.getElementById('customDateTo');
+  if (!fromEl.value) { fromEl.style.borderColor = 'var(--critical)'; return; }
+  var from = new Date(fromEl.value + 'T00:00:00');
+  var to = toEl.value ? new Date(toEl.value + 'T23:59:59') : new Date();
+  if (from >= to) { fromEl.style.borderColor = 'var(--critical)'; toEl.style.borderColor = 'var(--critical)'; return; }
+  // Set custom date range — server will filter by absolute dates
+  customStartDate = from.toISOString();
+  customEndDate = to.toISOString();
+  // Also set hours as fallback (for queries that only support hours)
+  selectedHours = Math.ceil((to.getTime() - from.getTime()) / 3600000);
+  // Deactivate preset buttons
+  ['timeBtn24h','timeBtn3d','timeBtn7d','timeBtn30d'].forEach(function(id) {
+    document.getElementById(id).classList.remove('active');
+  });
+  fromEl.style.borderColor = 'var(--accent)';
+  toEl.style.borderColor = 'var(--accent)';
+  updateScanReadiness();
   if (scanStarted) { resetAccumulator(); refreshAll(); }
 }
 
@@ -1797,6 +2168,7 @@ function toggleScan() {
     // Stop scanning
     scanStarted = false;
     if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
+    if (currentScanAbortController) { currentScanAbortController.abort(); currentScanAbortController = null; }
     updateScanReadiness();
     updateRSUFleetVisibility();
   } else {
@@ -1910,6 +2282,108 @@ function resetAccumulator() {
   totalScannedAll = 0;
 }
 
+function clearScanResults() {
+  // 1. Stop scan if running
+  if (scanStarted) toggleScan();
+
+  // Reset progressive scan state
+  initialScanDone = false;
+  scanActiveDevices = new Set();
+
+  // 2. Abort any in-flight requests
+  if (currentScanAbortController) {
+    currentScanAbortController.abort();
+    currentScanAbortController = null;
+  }
+
+  // 3. Reset accumulator
+  resetAccumulator();
+  activeFilters.clear();
+
+  // 4. Clear ALL map layers
+  if (mapLayerClean) mapLayerClean.clearLayers();
+  if (mapLayerAnomalies) mapLayerAnomalies.clearLayers();
+  if (mapLayerSiteLines) mapLayerSiteLines.clearLayers();
+  if (typeof mapLayerRSU !== 'undefined' && mapLayerRSU) mapLayerRSU.clearLayers();
+  if (mapLayerSites) mapLayerSites.clearLayers();
+  if (heatmapLayer) { map.removeLayer(heatmapLayer); heatmapLayer = null; }
+
+  // 5. Clear scan table
+  var scanBody = document.getElementById('scanBody');
+  if (scanBody) scanBody.innerHTML = '';
+
+  // 6. Clear alert log table
+  var alertBody = document.getElementById('alertLogBody');
+  if (alertBody) alertBody.innerHTML = '';
+
+  // 7. Reset alert log data array
+  alertLogData = [];
+
+  // 8. Reset header stats
+  if (typeof updateHeaderStats === 'function') updateHeaderStats({ totalMeasurements: 0, knownSites: 0, activeDevices: 0, badMeasurements: 0 }, []);
+  var scanSummary = document.getElementById('scanSummary');
+  if (scanSummary) scanSummary.textContent = '--';
+
+  // 9. Reset threat breakdown + timeline
+  if (typeof renderThreatBreakdown === 'function') renderThreatBreakdown([]);
+  if (typeof renderThreatTimeline === 'function') renderThreatTimeline([]);
+  if (typeof updateFilterButtons === 'function') updateFilterButtons();
+
+  // 10. Reset RAT + MCC inline
+  var ratBar = document.getElementById('ratStackedBar');
+  if (ratBar) ratBar.innerHTML = '';
+  var ratLegend = document.getElementById('ratLegend');
+  if (ratLegend) ratLegend.innerHTML = '';
+  var mccInline = document.getElementById('mccInline');
+  if (mccInline) mccInline.innerHTML = '';
+
+  // 11. Clear PLMN breakdown
+  var plmnEl = document.getElementById('plmnBreakdown');
+  if (plmnEl) plmnEl.innerHTML = '';
+
+  // 12. CLEAR BELL ALERTS — badge + dropdown content
+  bellAlerts = [];
+  bellUnread = 0;
+  var bellBadge = document.getElementById('bellBadge');
+  if (bellBadge) { bellBadge.style.display = 'none'; bellBadge.textContent = '0'; }
+  var bellAlertCount = document.getElementById('bellAlertCount');
+  if (bellAlertCount) bellAlertCount.textContent = '0';
+  var bellAlertList = document.getElementById('bellAlertList');
+  if (bellAlertList) bellAlertList.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-dim);">No alerts</div>';
+
+  // 13. Clear RSU-specific accumulators
+  if (typeof rsuBandsAccumulator !== 'undefined') rsuBandsAccumulator = {};
+  if (typeof rsuTechAccumulator !== 'undefined') rsuTechAccumulator = {};
+  if (typeof spectrumAccumulator !== 'undefined') spectrumAccumulator = {};
+  if (typeof sitesCache !== 'undefined') sitesCache = [];
+
+  // 14. Close SSE connection and reconnect fresh (prevents old alerts streaming back)
+  if (alertSSE) {
+    alertSSE.close();
+    alertSSE = null;
+    sseConnected = false;
+    var sseEl = document.getElementById('sseStatus');
+    if (sseEl) { sseEl.textContent = 'OFF'; sseEl.style.background = 'var(--border)'; sseEl.style.color = 'var(--text-dim)'; }
+  }
+
+  // 15. Hide filter section
+  var filterSection = document.getElementById('sidebarFilterSection');
+  if (filterSection) filterSection.style.display = 'none';
+
+  // 16. Reset cell profile panel if open
+  var cellProfile = document.getElementById('cellProfile');
+  if (cellProfile) cellProfile.classList.remove('open');
+
+  // 17. Reset RSU panel if open
+  if (typeof closeRSUPanel === 'function') closeRSUPanel();
+
+  // 18. Reset status text
+  var statusText = document.getElementById('scanStatusText');
+  if (statusText) statusText.textContent = 'Cleared — ready to scan';
+
+  console.log('[CLEAR] Full state reset complete');
+}
+
 // ---------------------------------------------------------------------------
 // ANOMALY TYPE FILTER — multi-select toggle buttons
 // ---------------------------------------------------------------------------
@@ -2006,7 +2480,7 @@ function getFilteredAnomalyList() {
 function applyTimeWindowFilter(list) {
   if (!activeTimelineWindow) return list;
   return list.filter(function(m) {
-    var ts = m.timestamp ? new Date(m.timestamp).getTime() : 0;
+    var ts = m.timestamp ? new Date(parseAsUTC(m.timestamp)).getTime() : 0;
     return ts >= activeTimelineWindow.tsStart && ts < activeTimelineWindow.tsEnd;
   });
 }
@@ -2035,22 +2509,50 @@ function applyFiltersAndRender() {
   var clean = Object.values(accumulatedClean).slice(-500);
   if (activeTimelineWindow) {
     clean = clean.filter(function(m) {
-      var ts = m.timestamp ? new Date(m.timestamp).getTime() : 0;
+      var ts = m.timestamp ? new Date(parseAsUTC(m.timestamp)).getTime() : 0;
       return ts >= activeTimelineWindow.tsStart && ts < activeTimelineWindow.tsEnd;
+    });
+  }
+  // RSU mode: only show anomalies from known RSU devices
+  if (currentDeploymentMode === 'RSU' && rsuDevicesCache.length > 0) {
+    var rsuDeviceIds = new Set();
+    for (var ri = 0; ri < rsuDevicesCache.length; ri++) {
+      rsuDeviceIds.add(rsuDevicesCache[ri].device_id);
+    }
+    filtered = filtered.filter(function(m) {
+      return m.deviceInfo_deviceId && rsuDeviceIds.has(m.deviceInfo_deviceId);
+    });
+    clean = clean.filter(function(m) {
+      return m.deviceInfo_deviceId && rsuDeviceIds.has(m.deviceInfo_deviceId);
     });
   }
   updateMap(filtered.concat(clean));
 }
 
+// ClickHouse returns timestamps without timezone suffix — they are UTC.
+// This helper ensures JS Date parses them as UTC so local display is correct.
+function parseAsUTC(ts) {
+  if (!ts) return ts;
+  var raw = String(ts);
+  // Already has timezone info
+  if (raw.indexOf('Z') >= 0 || raw.indexOf('+') >= 0) return raw;
+  // Format: "2026-04-01 09:20:45" or "2026-04-01 09:20:45.000" → add T and Z
+  if (raw.indexOf('T') < 0 && raw.indexOf(' ') > 0) return raw.replace(' ', 'T') + 'Z';
+  // Format: "2026-04-01T09:20:45" without Z → add Z
+  if (raw.indexOf('T') > 0) return raw + 'Z';
+  return raw;
+}
+
 function fmtTime(ts) {
   if (!ts) return '--';
-  var d = new Date(ts);
+  var d = new Date(parseAsUTC(ts));
   return d.toLocaleTimeString('en-US', { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
 }
 
 function fmtDateTime(ts) {
   if (!ts) return '--';
-  var d = new Date(ts);
+  var d = new Date(parseAsUTC(ts));
+  if (isNaN(d.getTime())) return String(ts);
   var day = String(d.getDate()).padStart(2, '0');
   var mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
   var year = d.getFullYear();
@@ -2129,7 +2631,7 @@ function ratBadge(rat) {
 }
 
 async function fetchJSON(url) {
-  var res = await fetch(url);
+  var res = await authFetch(url);
   var json = await res.json();
   return json.ok !== false ? (json.data || []) : [];
 }
@@ -2154,6 +2656,13 @@ function renderBarChart(containerId, items, colorVar) {
 // Called after each live scan with the full measurements array.
 var prevAnomalyCount = null; // for trend arrow
 
+function updateActiveDevicesKPI(count) {
+  var el = document.getElementById('statActiveDevices');
+  if (el) { el.textContent = count; el.style.color = count > 0 ? 'var(--accent)' : 'var(--text-dim)'; }
+  var sub = document.getElementById('statActiveDevicesSub');
+  if (sub) sub.textContent = 'in scan range';
+}
+
 function updateStatCardsFromScan(measurements) {
   if (!measurements || measurements.length === 0) return;
 
@@ -2171,8 +2680,9 @@ function updateStatCardsFromScan(measurements) {
 
     var plmn = m.network_PLMN || '';
     if (plmn) {
-      if (!plmnMap[plmn]) plmnMap[plmn] = { count: 0, operator: m.network_operator || '', mcc: m.network_mcc || '' };
+      if (!plmnMap[plmn]) plmnMap[plmn] = { count: 0, operator: m.network_operator || '', mcc: m.network_mcc || '', devices: new Set() };
       plmnMap[plmn].count++;
+      if (m.deviceInfo_deviceId) plmnMap[plmn].devices.add(m.deviceInfo_deviceId);
     }
 
     var tech = (m.tech || 'Unknown').toUpperCase();
@@ -2488,7 +2998,7 @@ function buildTimelineChartData() {
   var buckets = {};
   for (var i = 0; i < anomalies.length; i++) {
     var m = anomalies[i];
-    var ts = m.timestamp ? new Date(m.timestamp).getTime() : 0;
+    var ts = m.timestamp ? new Date(parseAsUTC(m.timestamp)).getTime() : 0;
     if (!ts) continue;
     var bucketTs = Math.floor(ts / bucketMs) * bucketMs;
     if (!buckets[bucketTs]) buckets[bucketTs] = { ts: bucketTs, CRITICAL: 0, HIGH: 0, MEDIUM: 0 };
@@ -2537,7 +3047,7 @@ function getTimeFilteredAnomalies() {
   var all = Object.values(accumulatedAnomalies);
   if (!activeTimelineWindow) return all;
   return all.filter(function(m) {
-    var ts = m.timestamp ? new Date(m.timestamp).getTime() : 0;
+    var ts = m.timestamp ? new Date(parseAsUTC(m.timestamp)).getTime() : 0;
     return ts >= activeTimelineWindow.tsStart && ts < activeTimelineWindow.tsEnd;
   });
 }
@@ -2574,8 +3084,8 @@ function renderThreatTimeline() {
     var highH = total > 0 ? (d.HIGH / maxVal * 100) : 0;
     var medH  = total > 0 ? (d.MEDIUM / maxVal * 100) : 0;
 
-    var dt = new Date(d.ts);
-    var timeLabel = String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+    var dt = new Date(d.ts); // d.ts is epoch ms — no need for parseAsUTC
+    var timeLabel = isNaN(dt.getTime()) ? '--' : String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
     var showLabel = (i % labelEvery === 0) || i === data.length - 1;
 
     html += '<div class="' + cls + '" onclick="onTimelineBarClick(' + i + ')" title="' + timeLabel + ' — ' + total + ' anomalies">';
@@ -2873,7 +3383,8 @@ function renderMccInline(plmnMap) {
     ? regionsCache[currentRegion].expectedMCC : [];
 
   var plmnEntries = Object.keys(plmnMap).map(function(p) {
-    return { plmn: p, count: plmnMap[p].count, operator: plmnMap[p].operator, mcc: plmnMap[p].mcc };
+    var deviceCount = plmnMap[p].devices ? plmnMap[p].devices.size : 0;
+    return { plmn: p, count: plmnMap[p].count, operator: plmnMap[p].operator, mcc: plmnMap[p].mcc, deviceCount: deviceCount };
   }).sort(function(a, b) { return b.count - a.count; });
 
   if (plmnEntries.length === 0) { el.innerHTML = '<span style="color:var(--text-dim);font-size:10px;">No PLMN data</span>'; return; }
@@ -2884,41 +3395,110 @@ function renderMccInline(plmnMap) {
       if (isExpected) {
         return '<span style="color:var(--text-dim);">' + e.plmn + ' <span style="font-size:9px;">' + e.count + '</span></span>';
       }
+      // Only flag as UNEXPECTED if seen from more than 1 unique device
+      if (e.deviceCount <= 1) {
+        return '<span style="color:var(--high);opacity:0.7;">' + e.plmn + ' <span style="font-size:9px;">' + e.count + ' (1 device)</span></span>';
+      }
       return '<span style="background:var(--critical-bg);color:var(--critical);padding:1px 6px;border-radius:3px;font-weight:700;">' +
         e.plmn + ' ' + e.count + ' UNEXPECTED</span>';
     }).join('') + '</div>';
 }
 
 var liveScanInFlight = false; // prevent overlapping scans
+var currentScanAbortController = null;
+var scanActiveDevices = new Set(); // accumulates unique device IDs across chunks
+var initialScanDone = false;      // true after first chunked scan completes
 
 async function loadLiveScan() {
   if (!scanStarted || selectedHours === null) return; // Don't scan until user clicks START
   if (liveScanInFlight) { console.log('[SCAN] Scan already in flight, skipping'); return; }
   liveScanInFlight = true;
 
+  currentScanAbortController = new AbortController();
+
+  // After initial chunked scan, subsequent refreshes only scan the latest window (last refresh interval)
+  if (initialScanDone) {
+    await loadLiveScanSingle();
+    return;
+  }
+
+  scanActiveDevices = new Set();
+
   try {
-    var scanUrl = '/api/scan/live?region=' + currentRegion + '&limit=1000';
-    if (selectedHours) scanUrl += '&hours=' + selectedHours;
+    // --- Step 1: Get scan metadata (fast COUNT + time bounds) ---
+    var metaUrl = API_BASE + '/api/scan/meta?region=' + currentRegion;
+    if (customStartDate && customEndDate) {
+      metaUrl += '&startDate=' + encodeURIComponent(customStartDate) + '&endDate=' + encodeURIComponent(customEndDate);
+    } else if (selectedHours) {
+      metaUrl += '&hours=' + selectedHours;
+    }
     if (customBbox) {
-      scanUrl += '&bbox=' + customBbox.latMin + ',' + customBbox.lngMin + ',' +
+      metaUrl += '&bbox=' + customBbox.latMin + ',' + customBbox.lngMin + ',' +
                  customBbox.latMax + ',' + customBbox.lngMax;
     }
-    console.log('[SCAN] Fetching: ' + scanUrl);
-    var res = await fetch(scanUrl);
-    var json = await res.json();
-    if (!json.ok || !json.data) { console.warn('[SCAN] Response not ok or no data'); return; }
-    var d = json.data;
-    var measCount = (d.measurements || []).length;
-    var aggCount = (d.aggregated || []).length;
-    console.log('[SCAN] Got ' + measCount + ' measurements, ' + aggCount + ' aggregated anomalies, ' + (d.total_flags || 0) + ' flags');
-    updateDbStatus(true);
+
+    var statusText = document.getElementById('scanStatusText');
+    if (statusText) statusText.textContent = 'Planning scan...';
+
+    var metaRes = await authFetch(metaUrl, { signal: currentScanAbortController.signal });
+    if (!scanStarted) return;
+    var metaJson = await metaRes.json();
+    if (!metaJson.ok || !metaJson.data) { console.warn('[SCAN] Meta failed'); return; }
+
+    var meta = metaJson.data;
+    var totalChunks = meta.totalChunks || 1;
+    var minTs = meta.minTs;
+    var maxTs = meta.maxTs;
+
+    console.log('[SCAN] Plan: ' + meta.totalRows + ' rows, ' + meta.uniqueSamples + ' unique, ' +
+      meta.activeDevices + ' devices → ' + totalChunks + ' chunks');
+
+    if (!minTs || !maxTs || meta.totalRows === 0) {
+      if (statusText) statusText.textContent = 'No data in selected area/time';
+      updateDbStatus(true);
+      return;
+    }
+
+    // Update active devices KPI immediately
+    updateActiveDevicesKPI(meta.activeDevices);
+
+    // --- Step 2: Fetch chunks progressively (old → new) ---
+    for (var ci = 0; ci < totalChunks; ci++) {
+      if (!scanStarted) { console.log('[SCAN] Stopped mid-scan'); return; }
+
+      var progress = Math.round(((ci + 1) / totalChunks) * 100);
+      if (statusText) statusText.textContent = 'Scanning chunk ' + (ci + 1) + '/' + totalChunks + ' (' + progress + '%)';
+
+      var chunkUrl = API_BASE + '/api/scan/chunk?region=' + currentRegion +
+        '&i=' + ci + '&total=' + totalChunks +
+        '&minTs=' + encodeURIComponent(minTs) + '&maxTs=' + encodeURIComponent(maxTs);
+      if (customBbox) {
+        chunkUrl += '&bbox=' + customBbox.latMin + ',' + customBbox.lngMin + ',' +
+                    customBbox.latMax + ',' + customBbox.lngMax;
+      }
+
+      var chunkRes = await authFetch(chunkUrl, { signal: currentScanAbortController.signal });
+      if (!scanStarted) return;
+      var json = await chunkRes.json();
+      if (!json.ok || !json.data) continue;
+
+      var d = json.data;
+      console.log('[SCAN] Chunk ' + (ci + 1) + '/' + totalChunks + ': ' +
+        (d.measurements || []).length + ' measurements, ' + (d.total_flags || 0) + ' flags');
+      updateDbStatus(true);
+
+      // Track active devices across all chunks
+      var chunkMeas = d.measurements || [];
+      for (var mi = 0; mi < chunkMeas.length; mi++) {
+        if (chunkMeas[mi].deviceInfo_deviceId) scanActiveDevices.add(chunkMeas[mi].deviceInfo_deviceId);
+      }
+      updateActiveDevicesKPI(scanActiveDevices.size);
 
     // Accumulate: full measurements for map, aggregated for table
     totalScannedAll += d.total_scanned || 0;
     accumulateScanResults(d.measurements || []);
 
-    // Store aggregated anomalies (replace on each scan — server does the grouping)
-    accumulatedAggregated = {};
+    // Accumulate aggregated anomalies (merge, don't reset — across all chunks)
     var aggList = d.aggregated || [];
     for (var ai = 0; ai < aggList.length; ai++) {
       var agg = aggList[ai];
@@ -2929,13 +3509,13 @@ async function loadLiveScan() {
 
     // RSU mode: mark RSUs with anomalies as error (red icon)
     if (currentDeploymentMode === 'RSU') {
-      // Reset statuses before re-marking
       for (var ri = 0; ri < rsuDevicesCache.length; ri++) delete rsuDevicesCache[ri]._status;
       markRSUErrors(d.measurements || []);
     }
 
-    // Update stat cards from full measurements set
-    updateStatCardsFromScan(d.measurements || []);
+    // Update stat cards from ALL accumulated data (not just this chunk)
+    var allAccumMeas = Object.values(accumulatedAnomalies).concat(Object.values(accumulatedClean));
+    updateStatCardsFromScan(allAccumMeas);
 
     var counts = getAccumulatedCounts();
 
@@ -2970,10 +3550,33 @@ async function loadLiveScan() {
     // Update map with accumulated data (respecting active filters)
     var filteredAnomalies = getFilteredAnomalyList();
     var cleanForMap = Object.values(accumulatedClean).slice(-500);
+
+    // RSU mode: only show anomalies from known RSU devices
+    if (currentDeploymentMode === 'RSU' && rsuDevicesCache.length > 0) {
+      var rsuDeviceIds = new Set();
+      for (var ri = 0; ri < rsuDevicesCache.length; ri++) {
+        rsuDeviceIds.add(rsuDevicesCache[ri].device_id);
+      }
+      filteredAnomalies = filteredAnomalies.filter(function(m) {
+        return m.deviceInfo_deviceId && rsuDeviceIds.has(m.deviceInfo_deviceId);
+      });
+      cleanForMap = cleanForMap.filter(function(m) {
+        return m.deviceInfo_deviceId && rsuDeviceIds.has(m.deviceInfo_deviceId);
+      });
+    }
+
     updateMap(filteredAnomalies.concat(cleanForMap));
 
     // Build the table from aggregated anomalies (grouped by rule+cell)
     var aggValues = Object.values(accumulatedAggregated);
+    // RSU mode: filter table to known RSU devices only
+    if (currentDeploymentMode === 'RSU' && rsuDevicesCache.length > 0) {
+      var rsuIds = new Set();
+      for (var rj = 0; rj < rsuDevicesCache.length; rj++) rsuIds.add(rsuDevicesCache[rj].device_id);
+      aggValues = aggValues.filter(function(m) {
+        return m.deviceInfo_deviceId && rsuIds.has(m.deviceInfo_deviceId);
+      });
+    }
     // Apply type filter
     if (activeFilters.size > 0) {
       aggValues = aggValues.filter(function(m) {
@@ -2990,14 +3593,81 @@ async function loadLiveScan() {
     applyScanSort();
     renderScanTable();
 
-    // Update Confirmed Threat Events table with accumulated anomalies (sortable + click-to-fly)
-    // (threat table removed — data shown in live scan table)
+    } // end chunk loop
+
+    // Mark initial scan done — subsequent refreshes use single-call mode
+    initialScanDone = true;
+
+    // Scan complete
+    if (statusText) statusText.textContent = totalScannedAll.toLocaleString() + ' samples scanned | ' + scanActiveDevices.size + ' devices | Complete';
 
   } catch (e) {
+    if (e.name === 'AbortError') { console.log('[SCAN] Request aborted'); return; }
     console.error('Live scan error:', e);
     updateDbStatus(false);
   } finally {
     liveScanInFlight = false;
+    currentScanAbortController = null;
+  }
+}
+
+// Lightweight single-call scan for refresh cycles (after initial chunked scan)
+// Only fetches the latest time window (last REFRESH_MS) to check for new data
+async function loadLiveScanSingle() {
+  try {
+    var scanUrl = API_BASE + '/api/scan/live?region=' + currentRegion + '&limit=1000';
+    if (customStartDate && customEndDate) {
+      scanUrl += '&startDate=' + encodeURIComponent(customStartDate) + '&endDate=' + encodeURIComponent(customEndDate);
+    } else if (selectedHours) {
+      scanUrl += '&hours=' + selectedHours;
+    }
+    if (customBbox) {
+      scanUrl += '&bbox=' + customBbox.latMin + ',' + customBbox.lngMin + ',' +
+                 customBbox.latMax + ',' + customBbox.lngMax;
+    }
+    var res = await authFetch(scanUrl, { signal: currentScanAbortController.signal });
+    if (!scanStarted) return;
+    var json = await res.json();
+    if (!json.ok || !json.data) return;
+    var d = json.data;
+    updateDbStatus(true);
+
+    // Accumulate new data on top of existing
+    var newMeas = d.measurements || [];
+    for (var ni = 0; ni < newMeas.length; ni++) {
+      if (newMeas[ni].deviceInfo_deviceId) scanActiveDevices.add(newMeas[ni].deviceInfo_deviceId);
+    }
+    totalScannedAll += d.total_scanned || 0;
+    accumulateScanResults(newMeas);
+
+    var aggList = d.aggregated || [];
+    for (var ai = 0; ai < aggList.length; ai++) {
+      var agg = aggList[ai];
+      var aggKey = (agg._agg_rule || agg.flags && agg.flags[0] && agg.flags[0].rule || 'x') + '|' +
+        (agg.cell_pci || 'x') + '|' + (agg.cell_enb || 'x');
+      accumulatedAggregated[aggKey] = agg;
+    }
+
+    updateStatCardsFromScan(newMeas);
+    updateActiveDevicesKPI(scanActiveDevices.size);
+    updateFilterButtons();
+    var filteredAnomalies = getFilteredAnomalyList();
+    var cleanForMap = Object.values(accumulatedClean).slice(-500);
+    updateMap(filteredAnomalies.concat(cleanForMap));
+    lastScanTableData = Object.values(accumulatedAggregated);
+    applyScanSort();
+    renderScanTable();
+    renderThreatBreakdown();
+    renderThreatTimeline();
+
+    var statusText = document.getElementById('scanStatusText');
+    if (statusText) statusText.textContent = totalScannedAll.toLocaleString() + ' samples | ' + scanActiveDevices.size + ' devices | Refreshed ' + new Date().toLocaleTimeString('en-US', { hour12: false });
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    console.error('Refresh scan error:', e);
+  } finally {
+    liveScanInFlight = false;
+    currentScanAbortController = null;
   }
 }
 
@@ -3015,13 +3685,15 @@ var SEV_RANK = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
 function getSortValue(m, key) {
   switch (key) {
     case 'severity': return SEV_RANK[m.max_severity] || (m.is_anomalous ? 1 : 0);
-    case 'time': return m.timestamp ? new Date(m.timestamp).getTime() : 0;
+    case 'time': return m.timestamp ? new Date(parseAsUTC(m.timestamp)).getTime() : 0;
     case 'cell': return m.cell_pci != null ? m.cell_pci : (m.cell_eci || 0);
     case 'mcc': return m.network_mcc || 0;
+    case 'operator': return (m.network_operator || '').toLowerCase();
     case 'rat': return (m.tech || '').toUpperCase();
     case 'rsrp': return m.signal_rsrp != null ? Number(m.signal_rsrp) : -999;
     case 'snr': return m.signal_snr != null ? Number(m.signal_snr) : -999;
     case 'ta': return m.signal_timingAdvance != null ? Number(m.signal_timingAdvance) : -1;
+    case 'source': var si = getSourceInfo(m); return si.label || '';
     case 'flags': return m.flags ? m.flags.length : 0;
     default: return 0;
   }
@@ -3043,7 +3715,7 @@ function applyScanSort() {
       var sb = SEV_RANK[b.max_severity] || 0;
       if (sa !== sb) return sb - sa;
     }
-    if (key !== 'time') return (new Date(b.timestamp || 0)) - (new Date(a.timestamp || 0));
+    if (key !== 'time') return (new Date(parseAsUTC(b.timestamp || 0))) - (new Date(parseAsUTC(a.timestamp || 0)));
     return 0;
   });
 }
@@ -3284,7 +3956,7 @@ var regionsCache = {};
 
 async function loadRegions() {
   try {
-    var res = await fetch('/api/regions');
+    var res = await authFetch(API_BASE + '/api/regions');
     var json = await res.json();
     if (!json.ok) return;
     regionsCache = json.data;
@@ -3309,7 +3981,12 @@ var mapLayerClean = null;
 var mapLayerAnomalies = null;
 var mapLayerSiteLines = null; // Lines connecting known sites to anomalous measurements
 var mapLayerRSU = null;       // RSU device icons (RSU mode only)
+var mapLayerSites = null;     // Known cell tower sites (RSU mode only)
 var rsuDevicesCache = [];     // Cached RSU device positions
+var rsuBandsAccumulator = {}; // { deviceId: Set<bandLabel> } — persists across fleet refreshes
+var rsuTechAccumulator = {};  // { deviceId: Set<RAT> } — accumulates seen RATs (LTE, NR, etc.)
+var sitesCache = [];          // Known sites from /api/sites
+var spectrumAccumulator = {}; // { deviceId: { cellular: [{freq, bw, rsrp, label, active}], wifi: [], gnss: [] } }
 var mapHasFittedOnce = false;
 
 function initMap() {
@@ -3359,6 +4036,7 @@ function initMap() {
       currentBaseLayer = layer;
       // Re-order overlay layers on top
       if (mapLayerClean) mapLayerClean.bringToFront();
+      if (mapLayerSites) mapLayerSites.bringToFront();
       if (mapLayerSiteLines) mapLayerSiteLines.bringToFront();
       if (mapLayerAnomalies) mapLayerAnomalies.bringToFront();
       if (mapLayerRSU) mapLayerRSU.bringToFront();
@@ -3391,6 +4069,7 @@ function initMap() {
   mapLayerClean = L.layerGroup().addTo(map);
   mapLayerSiteLines = L.layerGroup().addTo(map);
   mapLayerAnomalies = L.layerGroup().addTo(map);
+  mapLayerSites = L.layerGroup().addTo(map);
   mapLayerRSU = L.layerGroup().addTo(map);
 }
 
@@ -3639,11 +4318,13 @@ var RSU_COLORS = { online: '#22c55e', offline: '#4b5563', error: '#ef4444' };
 var RSU_ICON_SIZE = 28;
 
 function createRSUMapIcon(status) {
-  var opacity = status === 'offline' ? '0.4' : '1';
+  var color = RSU_COLORS[status] || RSU_COLORS.offline;
+  var opacity = status === 'offline' ? '0.45' : '1';
+  var glow = status !== 'offline' ? 'filter:drop-shadow(0 0 6px ' + color + ');' : '';
   return L.divIcon({
     className: '',
-    html: '<img src="/rsu-icon-new.png" width="' + RSU_ICON_SIZE + '" height="' + RSU_ICON_SIZE + '" ' +
-      'style="opacity:' + opacity + ';">',
+    html: '<img src="/rsu-icon-sm.png" width="' + RSU_ICON_SIZE + '" height="' + RSU_ICON_SIZE + '" ' +
+      'style="opacity:' + opacity + ';' + glow + '">',
     iconSize: [RSU_ICON_SIZE, RSU_ICON_SIZE],
     iconAnchor: [RSU_ICON_SIZE / 2, RSU_ICON_SIZE / 2],
     popupAnchor: [0, -(RSU_ICON_SIZE / 2)],
@@ -3675,13 +4356,13 @@ async function loadRSUDevices() {
   rsuLoadInFlight = true;
 
   // Only load RSUs within the selected polygon
-  var url = '/api/rsu/devices?hours=' + (selectedHours || 24) +
+  var url = API_BASE + '/api/rsu/devices?hours=' + (selectedHours || 24) +
     '&bbox=' + customBbox.latMin + ',' + customBbox.lngMin + ',' +
     customBbox.latMax + ',' + customBbox.lngMax;
 
   try {
     console.log('[RSU] Fetching: ' + url);
-    var res = await fetch(url);
+    var res = await authFetch(url);
     var json = await res.json();
     console.log('[RSU] Response:', json.ok, 'devices:', (json.data || []).length);
     if (!json.ok) return;
@@ -3818,22 +4499,50 @@ function renderRSUFleetGrid() {
     var activeSamples = parseInt(d.active_samples, 10) || 0;
     var deviceLabel = 'RSU-' + (d.device_id || '').substring(0, 8);
 
-    // Determine primary band from latest EARFCN
-    var bandLabel = '--';
+    // Accumulate bands from latest EARFCN
+    if (!rsuBandsAccumulator[d.device_id]) rsuBandsAccumulator[d.device_id] = new Set();
     if (d.latest_earfcn) {
       var bi = earfcnToBand(d.latest_earfcn);
-      if (bi) bandLabel = 'LTE B' + bi.band;
+      if (bi) rsuBandsAccumulator[d.device_id].add('B' + bi.band);
     }
+    var bandsArr = Array.from(rsuBandsAccumulator[d.device_id]);
+    var bandsLabel = bandsArr.length === 0 ? '--' :
+      bandsArr.length <= 3 ? bandsArr.join(', ') :
+      bandsArr.slice(0, 3).join(', ') + ' +' + (bandsArr.length - 3);
+
+    // Accumulate RAT/tech
+    if (!rsuTechAccumulator[d.device_id]) rsuTechAccumulator[d.device_id] = new Set();
+    if (d.latest_tech) {
+      var techNorm = String(d.latest_tech).toUpperCase().replace('EUTRAN', 'LTE').replace('NGRAN', 'NR');
+      rsuTechAccumulator[d.device_id].add(techNorm);
+    }
+    var techArr = Array.from(rsuTechAccumulator[d.device_id]);
+    var techLabel = techArr.length === 0 ? '--' : techArr.join(' / ');
 
     // Status badge
     var statusBadge = status === 'online' ? '<span class="rsu-card-status status-online">ONLINE</span>'
       : status === 'error' ? '<span class="rsu-card-status status-error">ERROR</span>'
       : '<span class="rsu-card-status status-offline">OFFLINE</span>';
 
+    // Unknown cell check — find matching scanned cell and check is_known
+    var connectedToUnknown = false;
+    if (sitesCache.length > 0 && d.latest_enb != null) {
+      var foundKnown = false;
+      for (var si = 0; si < sitesCache.length; si++) {
+        if (String(sitesCache[si].enb) === String(d.latest_enb)) {
+          foundKnown = sitesCache[si].is_known;
+          break;
+        }
+      }
+      connectedToUnknown = !foundKnown;
+    }
+
     // Anomaly status row
-    // Status row: Anomalies (red) / Normal (green) / Offline (gray)
+    // Status row: Anomalies (red) / Normal (green) / Offline (gray) / Unknown Cell (orange)
     var anomalyRow;
-    if (hasAnomalies) {
+    if (connectedToUnknown) {
+      anomalyRow = '<div class="rsu-metric-row"><svg viewBox="0 0 16 16" fill="currentColor" style="color:var(--high);"><polygon points="8,2 15,14 1,14"/></svg><span class="rsu-metric-value" style="color:var(--high);">Unknown Cell</span></div>';
+    } else if (hasAnomalies) {
       anomalyRow = '<div class="rsu-metric-row"><svg viewBox="0 0 16 16" fill="currentColor" style="color:var(--critical);"><polygon points="8,2 15,14 1,14"/></svg><span class="rsu-metric-value status-alert">Anomalies</span></div>';
     } else if (status === 'offline') {
       anomalyRow = '<div class="rsu-metric-row"><svg viewBox="0 0 16 16" fill="currentColor" style="color:var(--text-dim);"><circle cx="8" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="5" y1="5" x2="11" y2="11" stroke="currentColor" stroke-width="2"/></svg><span class="rsu-metric-value" style="color:var(--text-dim);">Offline</span></div>';
@@ -3845,15 +4554,15 @@ function renderRSUFleetGrid() {
     var lastSeenText = d.last_seen ? fmtRelativeTime(d.last_seen) : '--';
 
     var selectedClass = (selectedRSUCardId === d.device_id) ? ' rsu-card-selected' : '';
+    var alertClass = (hasAnomalies || connectedToUnknown) ? ' real-time-alert' : '';
 
-    cardsHtml += '<div class="rsu-card' + (hasAnomalies ? ' has-anomalies' : '') + selectedClass + '" ' +
+    cardsHtml += '<div class="rsu-card' + (hasAnomalies || connectedToUnknown ? ' has-anomalies' : '') + alertClass + selectedClass + '" ' +
       'data-device-id="' + d.device_id + '" data-deployment="' + deployment + '" ' +
       'onclick="onRSUCardClick(\'' + d.device_id + '\')">' +
       '<div class="rsu-card-header"><span class="rsu-card-name">' + deviceLabel + '</span>' + statusBadge + '</div>' +
       '<div class="rsu-card-metrics">' +
-        '<div class="rsu-metric-row"><svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="3"/></svg><span class="rsu-metric-label">Samples</span><span class="rsu-metric-value">' + fmtNum(activeSamples) + '</span></div>' +
-        '<div class="rsu-metric-row"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="4" width="12" height="2" rx="1"/><rect x="2" y="8" width="12" height="2" rx="1"/><rect x="2" y="12" width="8" height="2" rx="1"/></svg><span class="rsu-metric-label">Band</span><span class="rsu-metric-value">' + bandLabel + '</span></div>' +
-        '<div class="rsu-metric-row"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 14h2V6H2v8zm4 0h2V2H6v12zm4 0h2V9h-2v5zm4 0h2v-3h-2v3z"/></svg><span class="rsu-metric-label">RSRP</span><span class="rsu-metric-value" style="color:' + (d.latest_rsrp != null ? (Number(d.latest_rsrp) > -85 ? 'var(--green)' : Number(d.latest_rsrp) > -100 ? 'var(--medium)' : 'var(--critical)') : 'var(--text-dim)') + '">' + (d.latest_rsrp != null ? d.latest_rsrp + ' dBm' : '--') + '</span></div>' +
+        '<div class="rsu-metric-row"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="4" width="12" height="2" rx="1"/><rect x="2" y="8" width="12" height="2" rx="1"/><rect x="2" y="12" width="8" height="2" rx="1"/></svg><span class="rsu-metric-label">Bands</span><span class="rsu-metric-value">' + bandsLabel + '</span></div>' +
+        '<div class="rsu-metric-row"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 13V5h2v8H2zm4 0V3h2v10H6zm4 0V7h2v6h-2zm4 0V1h2v12h-2z"/></svg><span class="rsu-metric-label">RAT</span><span class="rsu-metric-value">' + techLabel + '</span></div>' +
         anomalyRow +
       '</div>' +
       '<div class="rsu-card-footer">Last seen: ' + lastSeenText + '</div>' +
@@ -3867,8 +4576,10 @@ function renderRSUFleetGrid() {
 function fmtRelativeTime(ts) {
   if (!ts) return '--';
   var now = Date.now();
-  var then = new Date(ts).getTime();
+  var then = new Date(parseAsUTC(ts)).getTime();
+  if (isNaN(then)) return '--';
   var diffSec = Math.floor((now - then) / 1000);
+  if (diffSec < 0) return 'just now';
   if (diffSec < 60) return diffSec + 's ago';
   if (diffSec < 3600) return Math.floor(diffSec / 60) + 'm ago';
   if (diffSec < 86400) return Math.floor(diffSec / 3600) + 'h ago';
@@ -3911,14 +4622,89 @@ function highlightRSUCard(deviceId) {
 }
 
 // ---------------------------------------------------------------------------
+// Known Sites — load from /api/sites and render on map (RSU mode only)
+// ---------------------------------------------------------------------------
+async function loadKnownSites() {
+  if (currentDeploymentMode !== 'RSU') return;
+  try {
+    var bboxParam = customBbox ? customBbox.latMin + ',' + customBbox.lngMin + ',' + customBbox.latMax + ',' + customBbox.lngMax : '';
+    var url = API_BASE + '/api/sites' + (bboxParam ? '?bbox=' + bboxParam : '');
+    var res = await authFetch(url);
+    var json = await res.json();
+    if (json.ok && json.data) {
+      sitesCache = json.data;
+      renderSitesOnMap(sitesCache);
+    }
+  } catch (e) {
+    console.error('[SITES] Load error:', e);
+  }
+}
+
+function renderSitesOnMap(sites) {
+  if (!mapLayerSites) return;
+  mapLayerSites.clearLayers();
+  for (var i = 0; i < sites.length; i++) {
+    var s = sites[i];
+    if (s.lat == null || s.lng == null) continue;
+
+    // Color: green if known in sites DB, orange if unknown
+    var fillColor = s.is_known ? '#6b7280' : '#f97316';
+    var borderColor = s.is_known ? '#374151' : '#c2410c';
+
+    var marker = L.circleMarker([s.lat, s.lng], {
+      radius: 5,
+      fillColor: fillColor,
+      color: borderColor,
+      weight: 1,
+      fillOpacity: 0.6
+    });
+
+    // Format band info from EARFCN
+    var bandInfo = '--';
+    if (s.earfcn) {
+      var bi = earfcnToBand(s.earfcn);
+      if (bi) bandInfo = 'B' + bi.band + ' (' + bi.freq.toFixed(1) + ' MHz) | EARFCN ' + s.earfcn;
+      else bandInfo = 'EARFCN ' + s.earfcn;
+    } else if (s.band_name) {
+      bandInfo = s.band_name;
+    }
+
+    var title = s.is_known ? 'KNOWN CELL SITE' : 'SCANNED CELL (Unknown)';
+    var locText = Number(s.lat).toFixed(4) + ', ' + Number(s.lng).toFixed(4);
+    var plmnText = s.plmn || ((s.mcc || '--') + '-' + (s.mnc || '--'));
+
+    marker.bindPopup(
+      '<b>' + title + '</b><br>' +
+      'eNB: ' + (s.enb || '--') + '<br>' +
+      'Location: ' + locText + '<br>' +
+      'PCI: ' + (s.pci || '--') + ' | ' + bandInfo + '<br>' +
+      'PLMN: ' + plmnText + '<br>' +
+      (s.operator ? 'Operator: ' + s.operator + '<br>' : '') +
+      (s.tech ? 'RAT: ' + s.tech + '<br>' : '') +
+      (s.bandwidth ? 'BW: ' + s.bandwidth + ' MHz<br>' : '') +
+      '<span style="color:var(--text-dim);font-size:10px;">' + (s.sample_count || 0) + ' samples | Last: ' + (s.last_seen ? fmtRelativeTime(s.last_seen) : '--') + '</span>',
+      { className: 'site-popup' }
+    );
+
+    mapLayerSites.addLayer(marker);
+  }
+  console.log('[SITES] Rendered ' + sites.length + ' scanned sites on map');
+}
+
+// ---------------------------------------------------------------------------
 // ALERT LOG — Server-Side In-Memory Alerts + SSE Real-Time Push
 // ---------------------------------------------------------------------------
 var alertLogData = [];      // Loaded from /api/alerts on refresh
 var sseConnected = false;
+var alertSSE = null;         // Global SSE connection ref
 
 function initSSE() {
+  // Close existing connection before creating a new one
+  if (alertSSE) { try { alertSSE.close(); } catch(_) {} alertSSE = null; }
   try {
-    var evtSource = new EventSource('/api/alerts/stream');
+    var sseUrl = API_BASE + '/api/alerts/stream' + (authToken ? '?token=' + encodeURIComponent(authToken) : '');
+    var evtSource = new EventSource(sseUrl);
+    alertSSE = evtSource;
     evtSource.onopen = function() {
       sseConnected = true;
       var el = document.getElementById('sseStatus');
@@ -4037,7 +4823,7 @@ function showAlertToast(alert) {
 
 async function loadAlertLog() {
   try {
-    var res = await fetch('/api/alerts?limit=200');
+    var res = await authFetch(API_BASE + '/api/alerts?limit=200');
     var json = await res.json();
     if (json.ok) {
       alertLogData = json.data || [];
@@ -4065,7 +4851,7 @@ var alertSortDir = 'desc';
 
 function getAlertSortValue(a, key) {
   switch (key) {
-    case 'time': return a.timestamp ? new Date(a.timestamp).getTime() : 0;
+    case 'time': return a.timestamp ? new Date(parseAsUTC(a.timestamp)).getTime() : 0;
     case 'rule': return (a.rule || '').toUpperCase();
     case 'severity': return SEV_RANK[(a.severity || '').toUpperCase()] || 0;
     case 'cell': return a.cell_id || '';
@@ -4161,7 +4947,7 @@ function openThresholdConfig() {
   var modal = document.getElementById('thresholdModal');
   if (!modal) return;
   // Fetch latest thresholds from server (single source of truth)
-  fetch('/api/thresholds').then(function(r) { return r.json(); }).then(function(j) {
+  authFetch(API_BASE + '/api/thresholds').then(function(r) { return r.json(); }).then(function(j) {
     if (j.ok && j.data) ruleThresholds = j.data;
     renderThresholdForm();
     modal.style.display = 'flex';
@@ -4218,8 +5004,12 @@ function closeThresholdConfig() {
 // ClickHouse Connection Settings
 // ---------------------------------------------------------------------------
 function openConnectionSettings() {
+  // Only super_admin can access ClickHouse settings — redirect to admin panel
+  if (!currentUser || currentUser.role !== 'super_admin') {
+    return;
+  }
   // Fetch current settings from server
-  fetch('/api/settings/clickhouse').then(function(r) { return r.json(); }).then(function(j) {
+  authFetch(API_BASE + '/api/settings/clickhouse').then(function(r) { return r.json(); }).then(function(j) {
     if (j.ok && j.data) {
       document.getElementById('connHost').value = j.data.host || '';
       document.getElementById('connPort').value = j.data.port || 8443;
@@ -4258,9 +5048,8 @@ function showConnStatus(msg, isError) {
 
 function testConnection() {
   showConnStatus('Testing...', false);
-  fetch('/api/settings/clickhouse', {
+  authFetch(API_BASE + '/api/settings/clickhouse', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(getConnFormData()),
   }).then(function(r) { return r.json(); }).then(function(j) {
     if (j.ok) {
@@ -4278,9 +5067,8 @@ function testConnection() {
 
 function saveConnectionSettings() {
   showConnStatus('Connecting...', false);
-  fetch('/api/settings/clickhouse', {
+  authFetch(API_BASE + '/api/settings/clickhouse', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(getConnFormData()),
   }).then(function(r) { return r.json(); }).then(function(j) {
     if (j.ok) {
@@ -4321,9 +5109,8 @@ function updateDbStatus(isOnline) {
 
 function applyThresholds() {
   // Post thresholds to server so rules.js can use them
-  fetch('/api/thresholds', {
+  authFetch(API_BASE + '/api/thresholds', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(ruleThresholds),
   }).then(function(r) { return r.json(); }).then(function(j) {
     if (j.ok) {
@@ -4384,12 +5171,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---------------------------------------------------------------------------
 async function refreshAll() {
   document.getElementById('lastUpdate').textContent = 'Updated ' + new Date().toLocaleTimeString('en-US', { hour12: false });
-  await Promise.all([
-    loadLiveScan(),
-    loadAlertLog(),
-    loadRSUDevices(),
-  ]);
-  countdown = 30;
+  await loadLiveScan();
+  await loadAlertLog();
+  await loadRSUDevices();
+  await loadKnownSites();
+  countdown = 60;
 }
 
 setInterval(function() {
@@ -4453,8 +5239,10 @@ var currentRSUTab = 'cellular';
 
 function switchRSUTab(tab) {
   currentRSUTab = tab;
-  ['cellular','qoe','wifi','gnss','alerts'].forEach(function(t) {
-    var el = document.getElementById('rsuTab' + t.charAt(0).toUpperCase() + t.slice(1));
+  var tabIds = ['modem','cellular-qoe','wifi-qoe','gnss','spectrum','alerts'];
+  var idMap = { 'modem': 'rsuTabModem', 'cellular-qoe': 'rsuTabCellular-qoe', 'wifi-qoe': 'rsuTabWifi-qoe', 'gnss': 'rsuTabGnss', 'spectrum': 'rsuTabSpectrum', 'alerts': 'rsuTabAlerts' };
+  tabIds.forEach(function(t) {
+    var el = document.getElementById(idMap[t]);
     if (el) el.style.display = t === tab ? '' : 'none';
   });
   document.querySelectorAll('.rsu-tab').forEach(function(btn) {
@@ -4465,6 +5253,8 @@ function switchRSUTab(tab) {
 function openRSUPanel(deviceId) {
   selectedRSUDeviceId = deviceId;
   document.getElementById('rsuPanel').classList.add('open');
+  // Set MODEM as default active tab
+  switchRSUTab('modem');
   loadRSUPanelData();
   if (rsuPanelRefreshInterval) clearInterval(rsuPanelRefreshInterval);
   rsuPanelRefreshInterval = setInterval(loadRSUPanelData, 30000);
@@ -4506,8 +5296,9 @@ function infoRow(label, value) {
 }
 
 function fmtUptime(seconds) {
-  if (seconds == null) return '--';
+  if (seconds == null || seconds === '' || seconds === '--') return '--';
   var s = Number(seconds);
+  if (isNaN(s) || s < 0) return '--';
   var d = Math.floor(s / 86400); s %= 86400;
   var h = Math.floor(s / 3600); s %= 3600;
   return d + 'd ' + h + 'h';
@@ -4536,11 +5327,21 @@ function renderCellularTab(m) {
 }
 
 function renderQoETab(m) {
-  var latency = m.internet_latency != null ? Number(m.internet_latency) : null;
-  var jitter = m.internet_jitter != null ? Number(m.internet_jitter) : null;
-  var loss = m.internet_latencyLoss != null ? Number(m.internet_latencyLoss) : null;
-  var dl = m.internet_downloadMbps != null ? Number(m.internet_downloadMbps) : null;
-  var ul = m.internet_uploadMbps != null ? Number(m.internet_uploadMbps) : null;
+  // Support both measurements table (internet_*) and modem_measurements (average_rtt, jitter, etc.)
+  var latency = m.internet_latency != null ? Number(m.internet_latency) :
+                m.average_rtt != null ? Number(m.average_rtt) : null;
+  var jitter = m.internet_jitter != null ? Number(m.internet_jitter) :
+               m.jitter != null ? Number(m.jitter) : null;
+  var loss = m.internet_latencyLoss != null ? Number(m.internet_latencyLoss) :
+             m.packet_loss != null ? Number(m.packet_loss) : null;
+  var dl = m.internet_downloadMbps != null ? Number(m.internet_downloadMbps) :
+           m.download_mbps != null ? Number(m.download_mbps) : null;
+  var ul = m.internet_uploadMbps != null ? Number(m.internet_uploadMbps) :
+           m.upload_mbps != null ? Number(m.upload_mbps) : null;
+
+  // Detect if loss is already in % (modem_measurements) or fraction (measurements table internet_latencyLoss)
+  var lossIsRaw = m.internet_latencyLoss != null; // measurements table stores as fraction (0.0-1.0)
+  var lossPct = loss != null ? (lossIsRaw ? loss * 100 : loss) : null;
 
   var hasQoe = latency != null || jitter != null || loss != null;
   var hasThroughput = dl != null || ul != null;
@@ -4548,7 +5349,7 @@ function renderQoETab(m) {
   document.getElementById('rsuPanelQoe').innerHTML = hasQoe ? (
     renderSignalBar('Latency', latency, 'ms', 200, 0, [30, 80, 150]) +
     renderSignalBar('Jitter', jitter, 'ms', 50, 0, [5, 15, 30]) +
-    (loss != null ? infoRow('Pkt Loss', (loss * 100).toFixed(2) + '%') : '')
+    (lossPct != null ? infoRow('Pkt Loss', lossPct.toFixed(2) + '%') : '')
   ) : '<div style="color:var(--text-dim);font-size:10px;">No QoE data</div>';
 
   document.getElementById('rsuPanelThroughput').innerHTML = hasThroughput ? (
@@ -4589,6 +5390,428 @@ function renderGNSSTab(m) {
   ) : '<div style="color:var(--text-dim);font-size:10px;">No satellite data</div>';
 }
 
+// ue_state can be numeric (Quectel AT+QENG values) or string
+var UE_STATE_MAP = { 0: 'NULL', 1: 'SEARCH', 2: 'LIMSRV', 3: 'NOCONN', 4: 'CONNECT' };
+function fmtUeState(val) {
+  if (val == null) return '--';
+  if (typeof val === 'number' || !isNaN(Number(val))) return UE_STATE_MAP[Number(val)] || String(val);
+  return String(val);
+}
+function ueStateColor(state) {
+  if (state == null || state === '--') return 'var(--text-dim)';
+  var s = String(state).toUpperCase();
+  if (s === '4' || s === 'CONNECT' || s.indexOf('CONNECT') >= 0) return '#22c55e';
+  if (s === '3' || s === 'NOCONN' || s.indexOf('IDLE') >= 0) return '#eab308';
+  if (s === '1' || s === 'SEARCH' || s.indexOf('SEARCH') >= 0 || s.indexOf('DETACH') >= 0) return '#ef4444';
+  if (s === '2' || s === 'LIMSRV') return '#f97316';
+  return 'var(--text-secondary)';
+}
+
+function renderModemTab(m) {
+  // State section
+  var ueState = fmtUeState(m.ue_state);
+  var rrcState = m.rrc_state || '--';
+  var conn = m.connection || '--';
+  var dataModem = m.data_modem;
+  var dataStr = dataModem === true || dataModem === 1 || dataModem === '1' ? 'Active' :
+                dataModem === false || dataModem === 0 || dataModem === '0' ? 'Inactive' : '--';
+  var dataColor = dataStr === 'Active' ? '#22c55e' : dataStr === 'Inactive' ? '#ef4444' : 'var(--text-dim)';
+  var nsaStr = m.is_nsa === true || m.is_nsa === 1 ? 'Yes (NSA)' : m.is_nsa === false || m.is_nsa === 0 ? 'No (SA)' : null;
+
+  document.getElementById('rsuPanelModemState').innerHTML =
+    infoRow('UE State', '<span style="color:' + ueStateColor(String(ueState)) + ';font-weight:700">' + ueState + '</span>') +
+    infoRow('RRC State', '<span style="color:' + ueStateColor(rrcState) + ';font-weight:700">' + rrcState + '</span>') +
+    infoRow('Connection', conn) +
+    infoRow('Data Modem', '<span style="color:' + dataColor + ';font-weight:700">' + dataStr + '</span>') +
+    (nsaStr ? infoRow('5G NSA', nsaStr) : '') +
+    (m.scs != null ? infoRow('SCS', m.scs + ' kHz') : '') +
+    (m.ca_index != null ? infoRow('CA Index', m.ca_index) : '') +
+    (m.modem_version ? infoRow('Modem FW', m.modem_version) : '') +
+    (m.device_version ? infoRow('Device FW', m.device_version) : '') +
+    (m.device_name ? infoRow('Device', m.device_name) : '') +
+    (m.mac_address ? infoRow('MAC', m.mac_address) : '');
+
+  // RF Details
+  var sig = m.signal != null ? Number(m.signal) : null;
+  var qual = m.quality != null ? Number(m.quality) : null;
+  var snr = m.sinr != null ? Number(m.sinr) : null;
+  var rsi = m.rssi != null ? Number(m.rssi) : null;
+  var cqi = m.cqi != null ? Number(m.cqi) : null;
+  var ri = m.ri != null ? Number(m.ri) : null;
+  var txp = m.tx_power != null ? Number(m.tx_power) : null;
+  var srx = m.srxlev != null ? Number(m.srxlev) : null;
+
+  document.getElementById('rsuPanelModemRF').innerHTML =
+    renderSignalBar('Signal (RSRP)', sig, 'dBm', -140, -43, [-85, -100, -120]) +
+    renderSignalBar('Quality (RSRQ)', qual, 'dB', -20, 0, [-10, -15, -20]) +
+    renderSignalBar('SINR', snr, 'dB', -10, 30, [10, 0, -5]) +
+    renderSignalBar('RSSI', rsi, 'dBm', -110, -25, [-65, -85, -100]) +
+    renderSignalBar('CQI', cqi, '', 0, 15, [10, 6, 3]) +
+    (ri != null ? infoRow('Rank Indicator', ri) : '') +
+    (txp != null ? infoRow('TX Power', txp + ' dBm') : '') +
+    (srx != null ? infoRow('SRxLev', srx + ' dB') : '');
+
+  // Per-antenna RX diversity
+  var hasAntenna = m.signal_prx != null || m.signal_drx != null || m.signal_rx2 != null || m.signal_rx3 != null;
+  document.getElementById('rsuPanelModemAntenna').innerHTML = hasAntenna ? (
+    '<div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">RSRP per RX chain</div>' +
+    renderSignalBar('PRX', m.signal_prx != null ? Number(m.signal_prx) : null, 'dBm', -140, -43, [-85, -100, -120]) +
+    renderSignalBar('DRX', m.signal_drx != null ? Number(m.signal_drx) : null, 'dBm', -140, -43, [-85, -100, -120]) +
+    (m.signal_rx2 != null ? renderSignalBar('RX2', Number(m.signal_rx2), 'dBm', -140, -43, [-85, -100, -120]) : '') +
+    (m.signal_rx3 != null ? renderSignalBar('RX3', Number(m.signal_rx3), 'dBm', -140, -43, [-85, -100, -120]) : '') +
+    '<div style="font-size:9px;color:var(--text-dim);margin:6px 0 4px;">RSRQ per RX chain</div>' +
+    (m.quality_prx != null ? renderSignalBar('PRX', Number(m.quality_prx), 'dB', -20, 0, [-10, -15, -20]) : '') +
+    (m.quality_drx != null ? renderSignalBar('DRX', Number(m.quality_drx), 'dB', -20, 0, [-10, -15, -20]) : '') +
+    (m.quality_rx2 != null ? renderSignalBar('RX2', Number(m.quality_rx2), 'dB', -20, 0, [-10, -15, -20]) : '') +
+    (m.quality_rx3 != null ? renderSignalBar('RX3', Number(m.quality_rx3), 'dB', -20, 0, [-10, -15, -20]) : '')
+  ) : '<div style="color:var(--text-dim);font-size:10px;">No antenna diversity data</div>';
+
+  // Cell Identity — with site correlation
+  var siteMatch = null;
+  if (sitesCache.length > 0 && m.enodeb_id != null) {
+    for (var si = 0; si < sitesCache.length; si++) {
+      if (String(sitesCache[si].enb) === String(m.enodeb_id)) {
+        siteMatch = sitesCache[si];
+        break;
+      }
+    }
+  }
+  var siteRow = (siteMatch && siteMatch.is_known)
+    ? infoRow('Site Match', '<span style="color:#22c55e;font-weight:700">\u2713 Known</span> (' + (siteMatch.operator || '?') + ')')
+    : (m.enodeb_id != null
+      ? infoRow('Site Match', '<span style="color:#ef4444;font-weight:700">\u26A0 Unknown</span>')
+      : '');
+
+  document.getElementById('rsuPanelModemCell').innerHTML =
+    infoRow('RAT', m.rat) +
+    infoRow('PCI', m.pcid) +
+    infoRow('Cell ID', m.cellid) +
+    infoRow('eNodeB', m.enodeb_id) +
+    infoRow('MCC-MNC', (m.mcc || '--') + '-' + (m.mnc || '--')) +
+    infoRow('TAC', m.tac) +
+    (m.lac ? infoRow('LAC', m.lac) : '') +
+    infoRow('Band', m.band) +
+    infoRow('Frequency', m.frequency ? m.frequency + ' MHz' : null) +
+    infoRow('Bandwidth', m.bandwidth ? m.bandwidth + ' MHz' : null) +
+    (m.duplex ? infoRow('Duplex', m.duplex) : '') +
+    (m.neighbor_type ? infoRow('Neighbor', m.neighbor_type) : '') +
+    siteRow +
+    infoRow('Time', fmtDateTime(m.timestamp));
+
+  // QoE — Network Performance (from modem_measurements)
+  var rtt = m.average_rtt != null ? Number(m.average_rtt) : null;
+  var modemJitter = m.jitter != null ? Number(m.jitter) : null;
+  var pktLoss = m.packet_loss != null ? Number(m.packet_loss) : null;
+  var dlMbps = m.download_mbps != null ? Number(m.download_mbps) : null;
+  var ulMbps = m.upload_mbps != null ? Number(m.upload_mbps) : null;
+
+  var hasModemQoe = rtt != null || modemJitter != null || pktLoss != null;
+  var hasModemThroughput = dlMbps != null || ulMbps != null;
+
+  document.getElementById('rsuPanelModemQoe').innerHTML = hasModemQoe ? (
+    renderSignalBar('RTT (Ping)', rtt, 'ms', 200, 0, [30, 80, 150]) +
+    renderSignalBar('Jitter', modemJitter, 'ms', 50, 0, [5, 15, 30]) +
+    (pktLoss != null ? infoRow('Packet Loss', pktLoss.toFixed(2) + '%') : '')
+  ) : '<div style="color:var(--text-dim);font-size:10px;">No QoE data</div>';
+
+  document.getElementById('rsuPanelModemThroughput').innerHTML = hasModemThroughput ? (
+    infoRow('Download', dlMbps != null ? dlMbps.toFixed(1) + ' Mbps' : null) +
+    infoRow('Upload', ulMbps != null ? ulMbps.toFixed(1) + ' Mbps' : null)
+  ) : '<div style="color:var(--text-dim);font-size:10px;">No throughput data</div>';
+}
+
+// ---------------------------------------------------------------------------
+// RF SPECTRUM VISUALIZATION — Canvas-based spectral display
+// ---------------------------------------------------------------------------
+var spectrumSubTab = 'cellular';
+var spectrumCellularData = null; // { bands: [{freq, bw, rsrp, label}] }
+var spectrumWifiData = null;     // { channels: [{freq, bw, rssi, ssid}] }
+var spectrumGnssData = null;     // { constellations: [{name, sats, snr}] }
+
+function switchSpectrumSub(sub) {
+  spectrumSubTab = sub;
+  ['cellular','wifi','gnss'].forEach(function(s) {
+    var btn = document.getElementById('specBtn' + s.charAt(0).toUpperCase() + s.slice(1));
+    if (btn) btn.classList.toggle('active', s === sub);
+  });
+  drawSpectrum();
+}
+
+function updateSpectrumData(latest, wifiSummary) {
+  var deviceId = selectedRSUDeviceId;
+  if (!deviceId) return;
+  if (!spectrumAccumulator[deviceId]) spectrumAccumulator[deviceId] = { cellular: {}, wifi: {}, gnss: {} };
+  var acc = spectrumAccumulator[deviceId];
+
+  // Cellular: merge from accumulated data (already populated by loadRSUPanelData + loadRSUModemData)
+  // Also add from scanned sitesCache
+  for (var i = 0; i < sitesCache.length; i++) {
+    var s = sitesCache[i];
+    if (!s.earfcn) continue;
+    var bi = earfcnToBand(s.earfcn);
+    if (!bi) continue;
+    var key = 'B' + bi.band;
+    if (!acc.cellular[key]) {
+      acc.cellular[key] = {
+        freq: bi.freq, band: bi.band,
+        bw: s.bandwidth ? Number(s.bandwidth) : 10,
+        label: key, rsrp: -70, active: false
+      };
+    }
+  }
+  // Mark current measurement band as active
+  if (latest && latest.band_downlinkEarfcn) {
+    var curBi = earfcnToBand(latest.band_downlinkEarfcn);
+    if (curBi) {
+      var ck = 'B' + curBi.band;
+      if (acc.cellular[ck]) acc.cellular[ck].active = true;
+      else acc.cellular[ck] = { freq: curBi.freq, band: curBi.band, bw: latest.band_bandwidth ? Number(latest.band_bandwidth) : 10, label: ck, rsrp: latest.signal_rsrp ? Number(latest.signal_rsrp) : -70, active: true };
+      if (latest.signal_rsrp) acc.cellular[ck].rsrp = Number(latest.signal_rsrp);
+    }
+  }
+  // Also check modem-style band_number
+  if (latest && latest.band_number && !latest.band_downlinkEarfcn) {
+    var bn = Number(latest.band_number);
+    if (bn > 0) {
+      var bk = 'B' + bn;
+      var freqVal = latest.band_downlinkFrequency ? Number(latest.band_downlinkFrequency) : 1800;
+      if (!acc.cellular[bk]) acc.cellular[bk] = { freq: freqVal, band: bn, bw: latest.band_bandwidth ? Number(latest.band_bandwidth) : 10, label: bk, rsrp: latest.signal_rsrp ? Number(latest.signal_rsrp) : -70, active: true };
+      else acc.cellular[bk].active = true;
+    }
+  }
+
+  spectrumCellularData = { bands: Object.values(acc.cellular) };
+
+  // WiFi: accumulate channels
+  if (wifiSummary && wifiSummary.length > 0) {
+    for (var w = 0; w < wifiSummary.length && w < 30; w++) {
+      var net = wifiSummary[w];
+      var ch = Number(net.channel) || 0;
+      var chName = net.channel_name || net.channelName || '';
+      var wFreq = 0;
+      if (ch >= 1 && ch <= 14) wFreq = 2412 + (ch - 1) * 5;
+      else if (ch >= 36 && ch <= 177) wFreq = 5000 + ch * 5;
+      else if (ch >= 1 && chName.indexOf('6G') >= 0) wFreq = 5955 + ch * 5;
+      if (wFreq === 0) continue;
+      var wkey = 'ch' + ch;
+      acc.wifi[wkey] = {
+        freq: wFreq, channel: ch,
+        bw: Number(net.channel_width) || 20,
+        rssi: Number(net.avg_signal) || -80,
+        ssid: net.ssid || '?',
+        count: Number(net.scan_count || net.cnt) || 1
+      };
+    }
+  }
+  spectrumWifiData = { channels: Object.values(acc.wifi) };
+
+  // GNSS: update from latest (not accumulated — snapshot)
+  var gnssConst = [];
+  if (latest) {
+    if (latest.satellites_gps_satellitesNo != null) gnssConst.push({ name: 'GPS', sats: Number(latest.satellites_gps_satellitesNo), freq: 1575.42, bw: 20 });
+    if (latest.satellites_glonass_satellitesNo != null) gnssConst.push({ name: 'GLONASS', sats: Number(latest.satellites_glonass_satellitesNo), freq: 1602, bw: 15 });
+    if (latest.satellites_galileo_satellitesNo != null) gnssConst.push({ name: 'Galileo', sats: Number(latest.satellites_galileo_satellitesNo), freq: 1575.42, bw: 24 });
+    if (latest.satellites_beidou_satellitesNo != null) gnssConst.push({ name: 'BeiDou', sats: Number(latest.satellites_beidou_satellitesNo), freq: 1561.1, bw: 20 });
+    // Also check modem-style GNSS fields
+    if (gnssConst.length === 0 && latest.satellites_used != null) {
+      gnssConst.push({ name: 'GNSS', sats: Number(latest.satellites_used), freq: 1575, bw: 30 });
+    }
+  }
+  spectrumGnssData = { constellations: gnssConst };
+
+  drawSpectrum();
+}
+
+function drawSpectrum() {
+  var canvas = document.getElementById('rsuSpectrumCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width = canvas.offsetWidth * 2; // HiDPI
+  var h = canvas.height = 360;
+  ctx.clearRect(0, 0, w, h);
+  ctx.scale(2, 2); // HiDPI scaling
+  var cw = w / 2, ch = h / 2;
+
+  // Dark background
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, cw, ch);
+
+  var legendEl = document.getElementById('rsuSpectrumLegend');
+
+  if (spectrumSubTab === 'cellular' && spectrumCellularData) {
+    drawCellularSpectrum(ctx, cw, ch, spectrumCellularData.bands);
+    if (legendEl) legendEl.textContent = spectrumCellularData.bands.length + ' band allocations from scanned cells';
+  } else if (spectrumSubTab === 'wifi' && spectrumWifiData) {
+    drawWifiSpectrum(ctx, cw, ch, spectrumWifiData.channels);
+    if (legendEl) legendEl.textContent = spectrumWifiData.channels.length + ' WiFi channels detected';
+  } else if (spectrumSubTab === 'gnss' && spectrumGnssData) {
+    drawGnssSpectrum(ctx, cw, ch, spectrumGnssData.constellations);
+    if (legendEl) legendEl.textContent = spectrumGnssData.constellations.map(function(c) { return c.name + ': ' + c.sats; }).join(' | ');
+  } else {
+    ctx.fillStyle = '#475569';
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('No spectrum data', cw / 2, ch / 2);
+    if (legendEl) legendEl.textContent = '';
+  }
+}
+
+function drawCellularSpectrum(ctx, w, h, bands) {
+  if (bands.length === 0) { ctx.fillStyle = '#475569'; ctx.font = '11px monospace'; ctx.textAlign = 'center'; ctx.fillText('No cellular bands', w/2, h/2); return; }
+  // X axis: frequency 700-2700 MHz
+  var fMin = 700, fMax = 2700;
+  var padL = 35, padR = 10, padT = 15, padB = 25;
+  var plotW = w - padL - padR, plotH = h - padT - padB;
+
+  // Grid
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 0.5;
+  for (var f = 700; f <= 2700; f += 200) {
+    var x = padL + ((f - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '8px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(f, x, padT + plotH + 12);
+  }
+  // Y axis dBm labels
+  ctx.fillStyle = '#64748b'; ctx.font = '8px monospace'; ctx.textAlign = 'right';
+  var dbSteps = [-120, -95, -70, -45, -20];
+  for (var d = 0; d < dbSteps.length; d++) {
+    var y = padT + plotH - ((dbSteps[d] + 120) / 100) * plotH;
+    ctx.fillText(dbSteps[d], padL - 3, y + 3);
+    ctx.strokeStyle = '#1e293b'; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
+  }
+
+  // Noise floor
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 0.5;
+  var noiseY = padT + plotH - ((-95 + 120) / 100) * plotH;
+  ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(padL, noiseY); ctx.lineTo(padL + plotW, noiseY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Draw bands as spectral peaks
+  for (var i = 0; i < bands.length; i++) {
+    var b = bands[i];
+    var cx = padL + ((b.freq - fMin) / (fMax - fMin)) * plotW;
+    var bwPx = (b.bw / (fMax - fMin)) * plotW;
+    var peakDb = b.rsrp || -60;
+    var peakY = padT + plotH - ((peakDb + 120) / 100) * plotH;
+
+    // Gradient fill
+    var grad = ctx.createLinearGradient(0, peakY, 0, padT + plotH);
+    if (b.active) {
+      grad.addColorStop(0, 'rgba(34, 197, 94, 0.8)');
+      grad.addColorStop(1, 'rgba(34, 197, 94, 0.05)');
+    } else {
+      grad.addColorStop(0, 'rgba(6, 182, 212, 0.6)');
+      grad.addColorStop(1, 'rgba(6, 182, 212, 0.02)');
+    }
+    ctx.fillStyle = grad;
+    // Bell curve shape
+    ctx.beginPath();
+    ctx.moveTo(cx - bwPx, padT + plotH);
+    ctx.quadraticCurveTo(cx - bwPx * 0.3, peakY, cx, peakY);
+    ctx.quadraticCurveTo(cx + bwPx * 0.3, peakY, cx + bwPx, padT + plotH);
+    ctx.fill();
+    // Outline
+    ctx.strokeStyle = b.active ? '#22c55e' : '#06b6d4'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - bwPx, padT + plotH);
+    ctx.quadraticCurveTo(cx - bwPx * 0.3, peakY, cx, peakY);
+    ctx.quadraticCurveTo(cx + bwPx * 0.3, peakY, cx + bwPx, padT + plotH);
+    ctx.stroke();
+    // Label
+    ctx.fillStyle = b.active ? '#22c55e' : '#94a3b8'; ctx.font = '8px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(b.label, cx, peakY - 4);
+  }
+}
+
+function drawWifiSpectrum(ctx, w, h, channels) {
+  if (channels.length === 0) { ctx.fillStyle = '#475569'; ctx.font = '11px monospace'; ctx.textAlign = 'center'; ctx.fillText('No WiFi data', w/2, h/2); return; }
+  // Determine range: 2.4GHz or 5GHz or both
+  var has24 = channels.some(function(c) { return c.freq < 3000; });
+  var has5 = channels.some(function(c) { return c.freq >= 5000; });
+  var fMin = has24 ? 2400 : 5150, fMax = has5 ? 5850 : 2500;
+  if (has24 && has5) { fMin = 2400; fMax = 5850; }
+  var padL = 35, padR = 10, padT = 15, padB = 25;
+  var plotW = w - padL - padR, plotH = h - padT - padB;
+
+  // Grid
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 0.5;
+  var step = has24 && has5 ? 500 : 20;
+  for (var f = fMin; f <= fMax; f += step) {
+    var x = padL + ((f - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '8px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(f, x, padT + plotH + 12);
+  }
+
+  // Draw channels
+  for (var i = 0; i < channels.length; i++) {
+    var c = channels[i];
+    var cx = padL + ((c.freq - fMin) / (fMax - fMin)) * plotW;
+    var bwPx = Math.max(4, (c.bw / (fMax - fMin)) * plotW);
+    var strength = Math.max(0, Math.min(1, (c.rssi + 90) / 50)); // -90 to -40 → 0 to 1
+    var peakY = padT + plotH * (1 - strength * 0.8);
+
+    var grad = ctx.createLinearGradient(0, peakY, 0, padT + plotH);
+    grad.addColorStop(0, 'rgba(168, 85, 247, 0.6)');
+    grad.addColorStop(1, 'rgba(168, 85, 247, 0.02)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(cx - bwPx / 2, padT + plotH);
+    ctx.quadraticCurveTo(cx, peakY, cx + bwPx / 2, padT + plotH);
+    ctx.fill();
+    ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(cx - bwPx / 2, padT + plotH);
+    ctx.quadraticCurveTo(cx, peakY, cx + bwPx / 2, padT + plotH);
+    ctx.stroke();
+    // Label
+    if (i < 15) {
+      ctx.fillStyle = '#c084fc'; ctx.font = '7px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('Ch' + c.channel, cx, peakY - 3);
+    }
+  }
+}
+
+function drawGnssSpectrum(ctx, w, h, constellations) {
+  if (constellations.length === 0) { ctx.fillStyle = '#475569'; ctx.font = '11px monospace'; ctx.textAlign = 'center'; ctx.fillText('No GNSS data', w/2, h/2); return; }
+  // Bar chart: satellite count per constellation
+  var padL = 40, padR = 10, padT = 15, padB = 25;
+  var plotW = w - padL - padR, plotH = h - padT - padB;
+  var barW = Math.min(50, plotW / constellations.length - 10);
+  var maxSats = 20;
+  var colors = { 'GPS': '#22c55e', 'GLONASS': '#3b82f6', 'Galileo': '#f59e0b', 'BeiDou': '#ef4444' };
+
+  // Grid
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 0.5;
+  for (var s = 0; s <= maxSats; s += 5) {
+    var y = padT + plotH - (s / maxSats) * plotH;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '8px monospace'; ctx.textAlign = 'right';
+    ctx.fillText(s, padL - 3, y + 3);
+  }
+
+  for (var i = 0; i < constellations.length; i++) {
+    var c = constellations[i];
+    var cx = padL + (i + 0.5) * (plotW / constellations.length);
+    var barH = (Math.min(c.sats, maxSats) / maxSats) * plotH;
+    var color = colors[c.name] || '#06b6d4';
+
+    var grad = ctx.createLinearGradient(0, padT + plotH - barH, 0, padT + plotH);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, color.replace(')', ', 0.2)').replace('rgb', 'rgba'));
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx - barW / 2, padT + plotH - barH, barW, barH);
+    ctx.strokeStyle = color; ctx.lineWidth = 1;
+    ctx.strokeRect(cx - barW / 2, padT + plotH - barH, barW, barH);
+
+    // Label
+    ctx.fillStyle = '#e2e8f0'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(c.name, cx, padT + plotH + 12);
+    ctx.fillStyle = color; ctx.font = '10px monospace';
+    ctx.fillText(c.sats, cx, padT + plotH - barH - 4);
+  }
+}
+
 async function loadRSUPanelData() {
   if (!selectedRSUDeviceId) return;
 
@@ -4610,10 +5833,10 @@ async function loadRSUPanelData() {
   document.getElementById('rsuPanelLastSeen').textContent = device ? ('Last: ' + fmtDateTime(device.last_seen)) : '--';
 
   try {
-    var res = await fetch('/api/rsu/device/' + encodeURIComponent(selectedRSUDeviceId) + '?limit=5');
+    var res = await authFetch(API_BASE + '/api/rsu/device/' + encodeURIComponent(selectedRSUDeviceId) + '?limit=5');
     var json = await res.json();
     if (!json.ok || !json.data || json.data.length === 0) {
-      ['rsuPanelSignal','rsuPanelCell','rsuPanelQoe','rsuPanelThroughput','rsuPanelGnss','rsuPanelSats'].forEach(function(id) {
+      ['rsuPanelSignal','rsuPanelCell','rsuPanelQoe','rsuPanelThroughput','rsuPanelGnss','rsuPanelSats','rsuPanelModemState','rsuPanelModemRF','rsuPanelModemAntenna','rsuPanelModemCell'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = '<div style="color:var(--text-dim);font-size:10px;">No recent data</div>';
       });
@@ -4623,6 +5846,80 @@ async function loadRSUPanelData() {
     }
 
     var latest = json.data[0];
+
+    // Accumulate bands from ALL returned measurements into fleet card accumulator + spectrum
+    var deviceId = selectedRSUDeviceId;
+    if (!rsuBandsAccumulator[deviceId]) rsuBandsAccumulator[deviceId] = new Set();
+    if (!spectrumAccumulator[deviceId]) spectrumAccumulator[deviceId] = { cellular: {}, wifi: {}, gnss: {} };
+    for (var mi = 0; mi < json.data.length; mi++) {
+      var meas = json.data[mi];
+      // From measurements table (band_downlinkEarfcn)
+      if (meas.band_downlinkEarfcn || meas.band_downlinkFrequency) {
+        var ebi = earfcnToBand(meas.band_downlinkEarfcn);
+        if (ebi) {
+          rsuBandsAccumulator[deviceId].add('B' + ebi.band);
+          var specKey = 'B' + ebi.band;
+          spectrumAccumulator[deviceId].cellular[specKey] = {
+            freq: ebi.freq, band: ebi.band,
+            bw: meas.band_bandwidth ? Number(meas.band_bandwidth) : 10,
+            label: specKey,
+            rsrp: meas.signal_rsrp ? Number(meas.signal_rsrp) : -70,
+            active: mi === 0
+          };
+        }
+      }
+      // From normalized modem data (band_number or band_name)
+      if (meas.band_number && !meas.band_downlinkEarfcn) {
+        var bn = Number(meas.band_number);
+        if (bn > 0) {
+          rsuBandsAccumulator[deviceId].add('B' + bn);
+          var freqEst = meas.band_downlinkFrequency ? Number(meas.band_downlinkFrequency) : 0;
+          spectrumAccumulator[deviceId].cellular['B' + bn] = {
+            freq: freqEst || 1800, band: bn,
+            bw: meas.band_bandwidth ? Number(meas.band_bandwidth) : 10,
+            label: 'B' + bn,
+            rsrp: meas.signal_rsrp ? Number(meas.signal_rsrp) : -70,
+            active: mi === 0
+          };
+        }
+      }
+    }
+    // Trigger fleet grid update so it picks up newly accumulated bands
+    renderRSUFleetGrid();
+
+    // Correlate with known sites (sitesCache = scanned cells with is_known flag)
+    var matchedSite = null;
+    var connectedToUnknown = false;
+    if (sitesCache.length > 0 && latest.cell_enb != null) {
+      for (var si = 0; si < sitesCache.length; si++) {
+        if (String(sitesCache[si].enb) === String(latest.cell_enb) &&
+            String(sitesCache[si].pci) === String(latest.cell_pci)) {
+          matchedSite = sitesCache[si];
+          break;
+        }
+      }
+      connectedToUnknown = !matchedSite || !matchedSite.is_known;
+    }
+
+    // Show correlation in panel header
+    var correlationHtml = '';
+    if (matchedSite && matchedSite.is_known) {
+      correlationHtml = '<div style="font-size:10px;color:var(--green);margin-top:4px;">' +
+        '\u2713 Connected to known site: ' + (matchedSite.operator || 'Unknown') +
+        ' eNB ' + matchedSite.enb + '</div>';
+    } else if (latest.cell_enb != null) {
+      correlationHtml = '<div style="font-size:10px;color:var(--critical);margin-top:4px;">' +
+        '\u26A0 Connected to UNKNOWN site: eNB ' + latest.cell_enb +
+        ' PCI ' + latest.cell_pci + '</div>';
+    }
+    var locationEl = document.getElementById('rsuPanelLocation');
+    var corrEl = document.getElementById('rsuPanelCorrelation');
+    if (!corrEl) {
+      corrEl = document.createElement('div');
+      corrEl.id = 'rsuPanelCorrelation';
+      locationEl.parentNode.insertBefore(corrEl, locationEl.nextSibling);
+    }
+    corrEl.innerHTML = correlationHtml;
 
     // Device info
     document.getElementById('rsuPanelTemp').textContent = latest.deviceInfo_temperature != null ? Number(latest.deviceInfo_temperature).toFixed(1) + '\u00B0C' : '--';
@@ -4643,8 +5940,47 @@ async function loadRSUPanelData() {
         }).join('')
       : '<div style="color:var(--text-dim);font-size:10px;">No recent alerts</div>';
 
-    // WiFi — load summary from wifi_measurements table
-    loadRSUWifiData();
+    // WiFi — load summary from wifi_measurements table (also updates spectrum)
+    loadRSUWifiData(latest);
+
+    // Modem — load from modem_measurements table
+    loadRSUModemData();
+
+    // RF Spectrum — initial render with cellular data (WiFi data arrives async)
+    updateSpectrumData(latest, null);
+
+    // Real-time anomaly status line
+    var statusLineEl = document.getElementById('rsuPanelRealtimeStatus');
+    if (!statusLineEl) {
+      statusLineEl = document.createElement('div');
+      statusLineEl.id = 'rsuPanelRealtimeStatus';
+      statusLineEl.style.cssText = 'font-size:10px;padding:4px 8px;margin:4px 0;border-radius:4px;';
+      var panelBody = document.querySelector('#rsuPanel .rsu-panel-body');
+      if (panelBody) panelBody.insertBefore(statusLineEl, panelBody.firstChild);
+    }
+
+    var anomalyFlags = [];
+    if (latest.signal_rsrp != null && Number(latest.signal_rsrp) > -50) anomalyFlags.push('Abnormally strong signal');
+    if (latest.signal_timingAdvance != null && Number(latest.signal_timingAdvance) === 0) anomalyFlags.push('TA=0 (possible IMSI catcher)');
+    if (latest.network_mcc && String(latest.network_mcc) === '1') anomalyFlags.push('Test network MCC 001');
+    if (latest.tech && ['GSM','EDGE','GPRS'].indexOf(latest.tech) >= 0) anomalyFlags.push('2G downgrade detected');
+    if (connectedToUnknown) anomalyFlags.push('Unknown cell tower');
+
+    // Check for device-specific alerts
+    var deviceAlertCount = alertLogData.filter(function(a) { return a.device_id === selectedRSUDeviceId; }).length;
+    var alertLink = deviceAlertCount > 0
+      ? ' <a href="#" onclick="switchRSUTab(\'alerts\');return false;" style="color:var(--critical);font-weight:700;text-decoration:underline;margin-left:8px;">' + deviceAlertCount + ' alert' + (deviceAlertCount > 1 ? 's' : '') + ' \u2192</a>'
+      : '';
+
+    if (anomalyFlags.length > 0) {
+      statusLineEl.style.background = 'rgba(239,68,68,0.15)';
+      statusLineEl.style.color = 'var(--critical)';
+      statusLineEl.innerHTML = '\u26A0 ALERT: ' + anomalyFlags.join(' | ') + alertLink;
+    } else {
+      statusLineEl.style.background = 'rgba(34,197,94,0.1)';
+      statusLineEl.style.color = 'var(--green)';
+      statusLineEl.innerHTML = '\u2713 Spectrum clear \u2014 no anomalies detected' + alertLink;
+    }
 
   } catch (e) {
     console.error('[RSU Panel] Load error:', e);
@@ -4652,9 +5988,79 @@ async function loadRSUPanelData() {
 }
 
 // ---------------------------------------------------------------------------
+// MODEM TAB — data from modem_measurements table
+// ---------------------------------------------------------------------------
+async function loadRSUModemData() {
+  if (!selectedRSUDeviceId) return;
+  var els = ['rsuPanelModemState','rsuPanelModemRF','rsuPanelModemAntenna','rsuPanelModemCell'];
+  try {
+    // Fetch more modem records to accumulate bands
+    var res = await authFetch(API_BASE + '/api/rsu/device/' + encodeURIComponent(selectedRSUDeviceId) + '/modem?limit=50');
+    var json = await res.json();
+    if (!json.ok || !json.data || json.data.length === 0) {
+      els.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.innerHTML = '<div style="color:var(--text-dim);font-size:10px;">No modem data</div>';
+      });
+      return;
+    }
+    renderModemTab(json.data[0]);
+
+    // Also update Cellular QoE tab with modem QoE data (if measurements table had none)
+    var modemLatest = json.data[0];
+    var hasModemQoe = modemLatest.average_rtt != null || modemLatest.jitter != null ||
+                      modemLatest.packet_loss != null || modemLatest.download_mbps != null ||
+                      modemLatest.upload_mbps != null;
+    if (hasModemQoe) {
+      var qoeEl = document.getElementById('rsuPanelQoe');
+      var tpEl = document.getElementById('rsuPanelThroughput');
+      // Only overwrite if currently showing "No QoE data"
+      if (qoeEl && qoeEl.textContent.indexOf('No QoE') >= 0) {
+        renderQoETab(modemLatest);
+      }
+    }
+
+    // Accumulate bands from ALL modem measurements
+    var deviceId = selectedRSUDeviceId;
+    if (!rsuBandsAccumulator[deviceId]) rsuBandsAccumulator[deviceId] = new Set();
+    if (!spectrumAccumulator[deviceId]) spectrumAccumulator[deviceId] = { cellular: {}, wifi: {}, gnss: {} };
+    if (!rsuTechAccumulator[deviceId]) rsuTechAccumulator[deviceId] = new Set();
+    for (var mi = 0; mi < json.data.length; mi++) {
+      var mm = json.data[mi];
+      // Accumulate RAT/tech from modem data
+      if (mm.rat) {
+        var mTech = String(mm.rat).toUpperCase().replace('EUTRAN', 'LTE').replace('NGRAN', 'NR');
+        rsuTechAccumulator[deviceId].add(mTech);
+      }
+      var bn = mm.band != null ? Number(mm.band) : 0;
+      var freq = mm.frequency != null ? Number(mm.frequency) : 0;
+      if (bn > 0) {
+        rsuBandsAccumulator[deviceId].add('B' + bn);
+        spectrumAccumulator[deviceId].cellular['B' + bn] = {
+          freq: freq || 1800, band: bn,
+          bw: mm.bandwidth ? Number(mm.bandwidth) : 10,
+          label: 'B' + bn,
+          rsrp: mm.signal != null ? Number(mm.signal) : -70,
+          active: mi === 0
+        };
+      }
+    }
+    // Update fleet grid + spectrum with newly accumulated bands
+    renderRSUFleetGrid();
+    drawSpectrum();
+  } catch (e) {
+    console.error('[RSU Modem] Load error:', e);
+    els.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.innerHTML = '<div style="color:var(--text-dim);font-size:10px;">Load error</div>';
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // WIFI TAB — data from wifi_measurements table
 // ---------------------------------------------------------------------------
-async function loadRSUWifiData() {
+async function loadRSUWifiData(latestMeasurement) {
   if (!selectedRSUDeviceId) return;
   var wifiEl = document.getElementById('rsuPanelWifi');
   var latestEl = document.getElementById('rsuPanelWifiLatest');
@@ -4662,9 +6068,12 @@ async function loadRSUWifiData() {
 
   try {
     // Fetch summary (grouped by SSID/BSSID)
-    var summaryRes = await fetch('/api/rsu/device/' + encodeURIComponent(selectedRSUDeviceId) + '/wifi/summary');
+    var summaryRes = await authFetch(API_BASE + '/api/rsu/device/' + encodeURIComponent(selectedRSUDeviceId) + '/wifi/summary');
     var summaryJson = await summaryRes.json();
     var summary = summaryJson.ok ? (summaryJson.data || []) : [];
+
+    // Update spectrum with WiFi data
+    if (latestMeasurement) updateSpectrumData(latestMeasurement, summary);
 
     if (summary.length === 0) {
       if (wifiEl) wifiEl.innerHTML = '<div style="color:var(--text-dim);font-size:10px;">No WiFi data for this device</div>';
@@ -4696,7 +6105,7 @@ async function loadRSUWifiData() {
     }
 
     // Fetch latest individual scans
-    var latestRes = await fetch('/api/rsu/device/' + encodeURIComponent(selectedRSUDeviceId) + '/wifi?limit=10');
+    var latestRes = await authFetch(API_BASE + '/api/rsu/device/' + encodeURIComponent(selectedRSUDeviceId) + '/wifi?limit=10');
     var latestJson = await latestRes.json();
     var latest = latestJson.ok ? (latestJson.data || []) : [];
 
@@ -4762,13 +6171,13 @@ async function timelineUpload() {
   var startTs = new Date(startVal + 'T00:00:00').toISOString();
   var endTs = new Date(endVal + 'T23:59:59').toISOString();
 
-  var url = '/api/rsu/device/' + encodeURIComponent(selectedRSUDeviceId) +
+  var url = API_BASE + '/api/rsu/device/' + encodeURIComponent(selectedRSUDeviceId) +
     '?limit=' + (parseInt(document.getElementById('timelineLimit').value, 10) || 5000) + '&start=' + encodeURIComponent(startTs) +
     '&end=' + encodeURIComponent(endTs);
 
   try {
     console.log('[Timeline] Uploading:', url);
-    var res = await fetch(url);
+    var res = await authFetch(url);
     var json = await res.json();
     if (!json.ok) {
       if (statusEl) statusEl.textContent = 'Upload failed';
@@ -4781,7 +6190,7 @@ async function timelineUpload() {
       return;
     }
     // Sort by timestamp ascending
-    timelineData.sort(function(a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+    timelineData.sort(function(a, b) { return new Date(parseAsUTC(a.timestamp)) - new Date(parseAsUTC(b.timestamp)); });
 
     // Enable Play button
     if (playBtn) playBtn.disabled = false;
@@ -4798,12 +6207,12 @@ async function timelineUpload() {
     if (statusEl) statusEl.textContent = timelineData.length + ' cellular loaded, fetching WiFi...';
     try {
       var wifiLimit = parseInt(document.getElementById('timelineLimit').value, 10) || 5000;
-      var wifiUrl = '/api/rsu/device/' + encodeURIComponent(selectedRSUDeviceId) +
+      var wifiUrl = API_BASE + '/api/rsu/device/' + encodeURIComponent(selectedRSUDeviceId) +
         '/wifi?limit=' + wifiLimit + '&start=' + encodeURIComponent(startTs) + '&end=' + encodeURIComponent(endTs);
-      var wifiRes = await fetch(wifiUrl);
+      var wifiRes = await authFetch(wifiUrl);
       var wifiJson = await wifiRes.json();
       timelineWifiData = (wifiJson.ok ? wifiJson.data : []) || [];
-      timelineWifiData.sort(function(a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+      timelineWifiData.sort(function(a, b) { return new Date(parseAsUTC(a.timestamp)) - new Date(parseAsUTC(b.timestamp)); });
       console.log('[Timeline] Uploaded ' + timelineWifiData.length + ' WiFi scans');
       buildWifiIndex();
     } catch (we) {
@@ -4890,6 +6299,11 @@ function timelineRender() {
   renderQoETab(m);
   renderGNSSTab(m);
 
+  // If data comes from modem_measurements, also update Modem tab
+  if (m._source === 'modem_measurements') {
+    renderModemTab(m);
+  }
+
   // Update WiFi tab — find WiFi scans closest to current cellular timestamp
   renderTimelineWifi(m.timestamp);
 
@@ -4920,7 +6334,7 @@ function buildWifiIndex() {
       wifiByNetwork[key] = [];
     }
     groups[key].totalSamples++;
-    wifiByNetwork[key].push({ ts: new Date(w.timestamp).getTime(), signal: Number(w.signal) });
+    wifiByNetwork[key].push({ ts: new Date(parseAsUTC(w.timestamp)).getTime(), signal: Number(w.signal) });
   }
 
   // Sort each network's scans by timestamp
@@ -5007,6 +6421,738 @@ function renderTimelineWifi(currentTs) {
 
   if (latestEl) latestEl.innerHTML = '';
 }
+
+// ---------------------------------------------------------------------------
+// ADMIN — full-page views with sidebar navigation
+// ---------------------------------------------------------------------------
+var adminOrgsCache = [];
+var adminUsersCache = [];
+var adminMode = false;
+var adminCurrentPage = 'orgs';
+
+// Enter admin mode — switch sidebar + main content
+function adminEnter() {
+  if (!currentUser || currentUser.role !== 'super_admin') return;
+  if (adminMode) return; // already in admin mode
+  adminMode = true;
+  // Hide SOC sidebar sections, show admin nav
+  document.querySelectorAll('#sidebar > .sidebar-section').forEach(function(s) { s.dataset.wasVisible = s.style.display; s.style.display = 'none'; });
+  document.getElementById('adminNavSection').style.display = '';
+  // Hide admin button in SOC header (we're in admin now)
+  var adminBtn = document.getElementById('adminPanelBtn');
+  if (adminBtn) adminBtn.style.display = 'none';
+  // Switch views
+  document.getElementById('socView').style.display = 'none';
+  document.getElementById('adminView').classList.add('active');
+}
+
+function adminExitToSOC() {
+  adminMode = false;
+  // Restore SOC sidebar
+  document.querySelectorAll('#sidebar > .sidebar-section').forEach(function(s) { s.style.display = s.dataset.wasVisible || ''; });
+  document.getElementById('adminNavSection').style.display = '';
+  // Show admin button in SOC header
+  var adminBtn = document.getElementById('adminPanelBtn');
+  if (adminBtn) adminBtn.style.display = '';
+  // Switch views
+  document.getElementById('adminView').classList.remove('active');
+  var soc = document.getElementById('socView');
+  soc.style.display = 'flex';
+  // Re-invalidate map size since it was hidden
+  if (map) setTimeout(function() { map.invalidateSize(); }, 100);
+}
+
+// -----------------------------------------------------------------------
+// IMPERSONATION — super admin views SOC as another org
+// -----------------------------------------------------------------------
+async function adminViewAsOrg(orgId) {
+  try {
+    var res = await authFetch(API_BASE + '/api/admin/impersonate/' + orgId, { method: 'POST' });
+    var json = await res.json();
+    if (!json.ok) { alert(json.error || 'Impersonation failed'); return; }
+
+    // Switch context
+    authToken = json.data.token;
+    localStorage.setItem('flyc2_token', authToken);
+    currentOrg = json.data.org;
+    localStorage.setItem('flyc2_org', JSON.stringify(currentOrg));
+
+    // Apply branding + license for the target org
+    applyBranding();
+    applyLicenseMode();
+
+    // Show impersonation banner
+    showImpersonationBanner(json.data.org.name);
+
+    // Exit admin, go to SOC view with this org's context
+    adminExitToSOC();
+
+    // Recenter map on org cluster
+    if (currentOrg.cluster && currentOrg.cluster.coordinates) {
+      var cbbox = polygonToBbox(currentOrg.cluster);
+      if (cbbox && map) map.fitBounds([[cbbox.latMin, cbbox.lngMin], [cbbox.latMax, cbbox.lngMax]]);
+    }
+
+    // Clear old scan data and start fresh
+    clearScanResults();
+    // Reconnect SSE with new token
+    initSSE();
+  } catch (e) {
+    console.error('[ADMIN] Impersonation failed:', e);
+    alert('Impersonation failed: ' + e.message);
+  }
+}
+
+function showImpersonationBanner(orgName) {
+  var banner = document.getElementById('impersonationBanner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'impersonationBanner';
+    banner.style.cssText = 'background:var(--high);color:#000;text-align:center;padding:4px 12px;font-weight:700;font-size:11px;display:flex;justify-content:space-between;align-items:center;z-index:9999;position:fixed;top:0;left:0;right:0;';
+    document.body.insertBefore(banner, document.body.firstChild);
+    // Push body content down
+    document.body.style.paddingTop = '28px';
+  }
+  banner.innerHTML = '<span>Viewing as: ' + esc(orgName) + '</span> <button onclick="stopImpersonation()" style="background:#000;color:#fff;border:none;padding:2px 10px;border-radius:3px;cursor:pointer;font-size:10px;font-weight:700;">Exit</button>';
+  banner.style.display = 'flex';
+}
+
+async function stopImpersonation() {
+  try {
+    var res = await authFetch(API_BASE + '/api/admin/stop-impersonation', { method: 'POST' });
+    var json = await res.json();
+    if (json.ok) {
+      authToken = json.data.token;
+      localStorage.setItem('flyc2_token', authToken);
+      currentOrg = json.data.org;
+      localStorage.setItem('flyc2_org', JSON.stringify(currentOrg));
+      var banner = document.getElementById('impersonationBanner');
+      if (banner) { banner.style.display = 'none'; }
+      document.body.style.paddingTop = '';
+      applyBranding();
+      applyLicenseMode();
+      clearScanResults();
+      initSSE();
+    }
+  } catch (e) {
+    console.error('[ADMIN] Stop impersonation failed:', e);
+  }
+}
+
+function polygonToBbox(polygon) {
+  if (!polygon || !polygon.coordinates || !polygon.coordinates[0]) return null;
+  var coords = polygon.coordinates[0];
+  var latMin = 90, latMax = -90, lngMin = 180, lngMax = -180;
+  for (var i = 0; i < coords.length; i++) {
+    var lng = coords[i][0], lat = coords[i][1];
+    if (lat < latMin) latMin = lat;
+    if (lat > latMax) latMax = lat;
+    if (lng < lngMin) lngMin = lng;
+    if (lng > lngMax) lngMax = lng;
+  }
+  return { latMin: latMin, lngMin: lngMin, latMax: latMax, lngMax: lngMax };
+}
+
+function adminNavigate(page) {
+  // Auto-enter admin mode if not already in it
+  if (!adminMode) adminEnter();
+  adminCurrentPage = page;
+  // Update nav active state
+  document.querySelectorAll('.admin-nav-item').forEach(function(n) { n.classList.remove('active'); });
+  var nav = document.getElementById('adminNav' + page.charAt(0).toUpperCase() + page.slice(1));
+  if (nav) nav.classList.add('active');
+  // Render page
+  if (page === 'orgs') adminPageOrgs();
+  else if (page === 'clusters') adminPageClusters();
+  else if (page === 'rsus') adminPageRsus();
+  else if (page === 'users') adminPageUsers();
+  else if (page === 'settings') adminPageSettings();
+}
+
+function adminLoadOrgs() {
+  return authFetch(API_BASE + '/api/admin/orgs').then(function(r) { return r.json(); }).then(function(j) {
+    adminOrgsCache = (j.ok ? j.data : []) || [];
+    return adminOrgsCache;
+  });
+}
+
+function adminLoadUsers() {
+  return authFetch(API_BASE + '/api/admin/users').then(function(r) { return r.json(); }).then(function(j) {
+    adminUsersCache = (j.ok ? j.data : []) || [];
+    return adminUsersCache;
+  });
+}
+
+// -----------------------------------------------------------------------
+// PAGE: Organizations
+// -----------------------------------------------------------------------
+function adminPageOrgs() {
+  var el = document.getElementById('adminPageContent');
+  el.innerHTML = '<div class="admin-page-header"><div class="admin-header-row">' +
+    '<div><h1>Organizations</h1><p>Manage all organizations</p></div>' +
+    '<button class="admin-create-btn" onclick="adminOrgForm()">+ Create Organization</button>' +
+    '</div></div><div class="admin-page-body" id="adminOrgsBody"><div style="color:var(--text-dim);padding:20px;">Loading...</div></div>';
+  adminLoadOrgs().then(function() { adminRenderOrgsList(); });
+}
+
+function adminRenderOrgsList() {
+  var body = document.getElementById('adminOrgsBody');
+  if (!body) return;
+  if (adminOrgsCache.length === 0) {
+    body.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-dim);">No organizations yet. Create one to get started.</div>';
+    return;
+  }
+  body.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px;">' +
+    adminOrgsCache.map(function(org) {
+      var d = org.created_at ? new Date(org.created_at) : null;
+      var dateStr = d ? (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear() : '';
+      return '<div class="admin-org-card" onclick="adminOrgForm(\'' + org.id + '\')">' +
+        '<div class="admin-org-icon">' +
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>' +
+        '</div>' +
+        '<div class="admin-org-info">' +
+        '<div class="admin-org-name">' + esc(org.name) + '</div>' +
+        '<div class="admin-org-id">' + org.id.substring(0,24) + '</div>' +
+        '</div>' +
+        '<div class="admin-org-meta">' +
+        '<span class="admin-badge admin-badge-license">' + (org.license || 'BOTH') + '</span>' +
+        '<span class="admin-badge ' + (org.demo_mode ? 'admin-badge-demo' : 'admin-badge-prod') + '">' + (org.demo_mode ? 'Demo' : 'Production') + '</span>' +
+        '<button class="admin-action-btn admin-view-as-btn" onclick="event.stopPropagation();adminViewAsOrg(\'' + org.id + '\')" title="View SOC as this org">&#128065; View</button>' +
+        '<span class="admin-org-date">' + dateStr + '</span>' +
+        '</div></div>';
+    }).join('') + '</div>';
+}
+
+// -----------------------------------------------------------------------
+// Org create/edit form (inline, replaces page content)
+// -----------------------------------------------------------------------
+
+function adminOrgForm(orgId) {
+  var org = orgId ? adminOrgsCache.find(function(o) { return o.id === orgId; }) : null;
+  var isEdit = !!org;
+  var el = document.getElementById('adminPageContent');
+  el.innerHTML = '<div class="admin-page-header"><h1>' + (isEdit ? 'Edit' : 'Create') + ' Organization</h1></div>' +
+    '<div class="admin-page-body"><div class="admin-form">' +
+    '<div class="admin-form-row">' +
+    '<div class="admin-form-field"><label>Name</label><input id="afName" value="' + (org ? esc(org.name) : '') + '"></div>' +
+    '<div class="admin-form-field"><label>License</label><select id="afLicense">' +
+    '<option value="BOTH"' + (org && org.license === 'BOTH' ? ' selected' : '') + '>BOTH</option>' +
+    '<option value="SDK"' + (org && org.license === 'SDK' ? ' selected' : '') + '>SDK</option>' +
+    '<option value="RSU"' + (org && org.license === 'RSU' ? ' selected' : '') + '>RSU</option></select></div></div>' +
+    '<div class="admin-form-row">' +
+    '<div class="admin-form-field"><label>Demo Mode</label><select id="afDemo">' +
+    '<option value="false"' + (org && !org.demo_mode ? ' selected' : '') + '>Production</option>' +
+    '<option value="true"' + (org && org.demo_mode ? ' selected' : '') + '>Demo</option></select></div>' +
+    '<div class="admin-form-field"><label>Logo URL</label><input id="afLogo" value="' + (org && org.logo_url ? esc(org.logo_url) : '') + '" placeholder="https://..."></div></div>' +
+    '<div class="admin-form-field"><label>Cluster Polygon (GeoJSON)</label>' +
+    '<textarea id="afCluster" rows="3" style="resize:vertical;">' + (org && org.cluster ? JSON.stringify(org.cluster) : '') + '</textarea>' +
+    '<div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Paste a GeoJSON Polygon, or use the Clusters page to draw on map</div></div>' +
+    '<div class="admin-form-actions">' +
+    '<button class="admin-btn admin-btn-primary" onclick="adminSaveOrg(' + (isEdit ? '\'' + org.id + '\'' : 'null') + ')">Save Organization</button>' +
+    '<button class="admin-btn" onclick="adminPageOrgs()">Cancel</button>' +
+    (isEdit ? '<button class="admin-btn admin-btn-danger" onclick="adminDeleteOrg(\'' + org.id + '\',\'' + esc(org.name) + '\')" style="margin-left:auto;">Delete</button>' : '') +
+    '</div></div></div>';
+}
+
+function adminSaveOrg(orgId) {
+  var clusterRaw = document.getElementById('afCluster').value.trim();
+  var cluster = null;
+  if (clusterRaw) { try { cluster = JSON.parse(clusterRaw); } catch(e) { alert('Invalid GeoJSON: ' + e.message); return; } }
+  var body = {
+    name: document.getElementById('afName').value.trim(),
+    license: document.getElementById('afLicense').value,
+    demo_mode: document.getElementById('afDemo').value === 'true',
+    logo_url: document.getElementById('afLogo').value.trim() || null,
+    cluster: cluster,
+  };
+  var url = orgId ? API_BASE + '/api/admin/orgs/' + orgId : API_BASE + '/api/admin/orgs';
+  authFetch(url, { method: orgId ? 'PUT' : 'POST', body: JSON.stringify(body) })
+    .then(function(r) { return r.json(); })
+    .then(function(j) { if (j.ok) adminPageOrgs(); else alert(j.error || 'Failed'); });
+}
+
+function adminDeleteOrg(orgId, name) {
+  if (!confirm('Delete "' + name + '"? This removes all its users too.')) return;
+  authFetch(API_BASE + '/api/admin/orgs/' + orgId, { method: 'DELETE' })
+    .then(function(r) { return r.json(); })
+    .then(function(j) { if (j.ok) adminPageOrgs(); else alert(j.error || 'Failed'); });
+}
+
+// -----------------------------------------------------------------------
+// PAGE: Clusters
+// -----------------------------------------------------------------------
+var clusterColors = ['#a78bfa','#22c55e','#f59e0b','#ef4444','#3b82f6','#ec4899','#14b8a6','#f97316'];
+
+function adminPageClusters() {
+  var el = document.getElementById('adminPageContent');
+  el.innerHTML = '<div class="admin-page-header"><div class="admin-header-row">' +
+    '<div><h1>Cluster Management</h1><p id="clusterCount">Loading...</p></div>' +
+    '<button class="admin-create-btn" onclick="adminClusterForm()">+ New Cluster</button>' +
+    '</div></div><div class="admin-page-body" id="adminClustersBody"><div style="color:var(--text-dim);">Loading...</div></div>';
+  adminLoadOrgs().then(function() { adminRenderClusters(); });
+}
+
+function adminRenderClusters() {
+  var body = document.getElementById('adminClustersBody');
+  var countEl = document.getElementById('clusterCount');
+  // Flatten clusters from all orgs
+  var clusters = [];
+  adminOrgsCache.forEach(function(org, oi) {
+    if (org.cluster) {
+      clusters.push({ org: org, name: org.name, cluster: org.cluster, rsus: (org.demo_rsus || []).length, color: clusterColors[oi % clusterColors.length] });
+    }
+    (org.sub_clusters || []).forEach(function(sc) {
+      clusters.push({ org: org, name: sc.name, cluster: sc.polygon, rsus: 0, color: clusterColors[(oi + 1) % clusterColors.length], isSub: true });
+    });
+  });
+  if (countEl) countEl.textContent = clusters.length + ' clusters configured';
+  if (clusters.length === 0) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);">No clusters yet. Create an organization with a cluster polygon.</div>'; return; }
+
+  var html = '<table class="admin-table"><thead><tr><th>Color</th><th>Name</th><th>Organization</th><th>Description</th><th>RSUs</th><th>Polygon</th><th>Created</th><th>Actions</th></tr></thead><tbody>';
+  clusters.forEach(function(c) {
+    var pts = c.cluster && c.cluster.coordinates ? c.cluster.coordinates[0].length : 0;
+    var d = c.org.created_at ? new Date(c.org.created_at) : null;
+    var ago = d ? adminTimeAgo(d) : '';
+    html += '<tr>' +
+      '<td><span class="admin-color-dot" style="background:' + c.color + ';"></span></td>' +
+      '<td style="font-weight:600;color:var(--text-primary);">' + esc(c.name) + (c.isSub ? ' <span style="color:var(--text-dim);font-size:9px;">(sub)</span>' : '') + '</td>' +
+      '<td>' + esc(c.org.name) + '</td>' +
+      '<td style="color:var(--text-dim);">' + (c.org.demo_mode ? 'Demo' : '') + '</td>' +
+      '<td><span style="background:var(--accent-bg);color:var(--accent);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">' + c.rsus + '</span></td>' +
+      '<td class="mono" style="font-size:10px;">' + pts + ' pts</td>' +
+      '<td style="font-size:11px;color:var(--text-dim);">' + ago + '</td>' +
+      '<td><button class="admin-action-btn" onclick="adminClusterForm(\'' + c.org.id + '\')" title="Edit cluster on map">&#128506;</button>' +
+      '<button class="admin-action-btn" onclick="adminOrgForm(\'' + c.org.id + '\')" title="Edit org">&#9998;</button>' +
+      '<button class="admin-action-btn danger" onclick="adminDeleteOrg(\'' + c.org.id + '\',\'' + esc(c.org.name) + '\')" title="Delete org">&#128465;</button></td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  body.innerHTML = html;
+}
+
+var adminClusterMap = null;
+var adminClusterDrawnItems = null;
+var adminClusterDrawControl = null;
+
+function adminClusterForm(orgId) {
+  var org = orgId ? adminOrgsCache.find(function(o) { return o.id === orgId; }) : null;
+
+  var orgOpts = '<option value="">Select Organization</option>';
+  adminOrgsCache.forEach(function(o) {
+    orgOpts += '<option value="' + o.id + '"' + (org && org.id === o.id ? ' selected' : '') + '>' + esc(o.name) + '</option>';
+  });
+
+  var el = document.getElementById('adminPageContent');
+  el.innerHTML = '<div class="admin-page-header"><h1>' + (org ? 'Edit Cluster: ' + esc(org.name) : 'Draw New Cluster') + '</h1></div>' +
+    '<div class="admin-page-body">' +
+    '<div class="admin-form" style="margin-bottom:12px;">' +
+    '<div class="admin-form-row"><div class="admin-form-field"><label>Organization</label><select id="afClusterOrg"' + (org ? ' disabled' : '') + '>' + orgOpts + '</select></div></div>' +
+    '</div>' +
+    '<div id="adminClusterMapContainer" style="height:800px;border-radius:8px;border:1px solid var(--border);overflow:hidden;"></div>' +
+    '<div style="margin-top:8px;font-size:10px;color:var(--text-dim);">Use the polygon tool (left side) to draw a cluster boundary. Click vertices, then click the first point to close.</div>' +
+    '<div class="admin-form-actions" style="margin-top:12px;">' +
+    '<button class="admin-btn admin-btn-primary" onclick="adminSaveCluster(' + (org ? '\'' + org.id + '\'' : '') + ')">Save Cluster</button>' +
+    '<button class="admin-btn" onclick="adminPageClusters()">Cancel</button>' +
+    '</div></div>';
+
+  // Initialize map after DOM render
+  setTimeout(function() {
+    adminClusterMap = L.map('adminClusterMapContainer', { zoomControl: true }).setView([31.5, 34.8], 8);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '', maxZoom: 19
+    }).addTo(adminClusterMap);
+
+    adminClusterDrawnItems = new L.FeatureGroup();
+    adminClusterMap.addLayer(adminClusterDrawnItems);
+
+    // Show existing clusters from all orgs
+    adminOrgsCache.forEach(function(o, oi) {
+      if (o.cluster && o.cluster.coordinates) {
+        var coords = o.cluster.coordinates[0].map(function(c) { return [c[1], c[0]]; });
+        var color = clusterColors[oi % clusterColors.length];
+        var poly = L.polygon(coords, { color: color, fillOpacity: 0.15, weight: 2 }).addTo(adminClusterMap);
+        poly.bindTooltip(o.name, { permanent: false, className: 'admin-cluster-tooltip' });
+      }
+    });
+
+    // If editing, load the org's existing cluster as editable
+    if (org && org.cluster && org.cluster.coordinates) {
+      var editCoords = org.cluster.coordinates[0].map(function(c) { return [c[1], c[0]]; });
+      var editPoly = L.polygon(editCoords, { color: '#40a9ff', fillOpacity: 0.25, weight: 3 });
+      adminClusterDrawnItems.addLayer(editPoly);
+      adminClusterMap.fitBounds(editPoly.getBounds(), { padding: [30, 30] });
+    }
+
+    // Add draw control
+    adminClusterDrawControl = new L.Control.Draw({
+      draw: {
+        polygon: { shapeOptions: { color: '#40a9ff', fillOpacity: 0.25, weight: 3 } },
+        polyline: false, circle: false, rectangle: false, marker: false, circlemarker: false
+      },
+      edit: { featureGroup: adminClusterDrawnItems }
+    });
+    adminClusterMap.addControl(adminClusterDrawControl);
+
+    adminClusterMap.on(L.Draw.Event.CREATED, function(e) {
+      adminClusterDrawnItems.clearLayers();
+      adminClusterDrawnItems.addLayer(e.layer);
+    });
+  }, 50);
+}
+
+function adminSaveCluster(editOrgId) {
+  var orgId = editOrgId || document.getElementById('afClusterOrg').value;
+  if (!orgId) { alert('Please select an organization'); return; }
+
+  var layers = adminClusterDrawnItems.getLayers();
+  if (layers.length === 0) { alert('Please draw a polygon on the map'); return; }
+
+  var latlngs = layers[0].getLatLngs()[0];
+  var geoCoords = latlngs.map(function(ll) { return [ll.lng, ll.lat]; });
+  // Close the ring
+  if (geoCoords.length > 0) {
+    var first = geoCoords[0], last = geoCoords[geoCoords.length - 1];
+    if (first[0] !== last[0] || first[1] !== last[1]) geoCoords.push([first[0], first[1]]);
+  }
+  var geojson = { type: 'Polygon', coordinates: [geoCoords] };
+
+  authFetch(API_BASE + '/api/admin/orgs/' + orgId, {
+    method: 'PUT',
+    body: JSON.stringify({ cluster: geojson })
+  }).then(function(r) { return r.json(); })
+    .then(function(j) {
+      if (j.ok) { adminPageClusters(); }
+      else alert(j.error || 'Failed to save cluster');
+    });
+}
+
+// -----------------------------------------------------------------------
+// PAGE: RSUs
+// -----------------------------------------------------------------------
+function adminPageRsus() {
+  var el = document.getElementById('adminPageContent');
+  el.innerHTML = '<div class="admin-page-header"><div class="admin-header-row">' +
+    '<div><h1>RSU Management</h1><p id="rsuCount">Loading...</p></div>' +
+    '<button class="admin-create-btn" onclick="adminRsuForm()">+ Add RSU</button>' +
+    '</div></div><div class="admin-page-body" id="adminRsusBody"><div style="color:var(--text-dim);">Loading...</div></div>';
+  adminLoadOrgs().then(function() { adminRenderRsus(); });
+}
+
+function adminRenderRsus() {
+  var body = document.getElementById('adminRsusBody');
+  var countEl = document.getElementById('rsuCount');
+  var rsus = [];
+  adminOrgsCache.forEach(function(org) {
+    (org.demo_rsus || []).forEach(function(r, idx) {
+      rsus.push({ org: org, device_id: r.device_id, label: r.label, lat: r.lat, lng: r.lng, cluster: org.name, idx: idx });
+    });
+  });
+  if (countEl) countEl.textContent = rsus.length + ' RSUs configured';
+  if (rsus.length === 0) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);">No RSUs configured. Click "+ Add RSU" to add one.</div>'; return; }
+
+  var html = '<table class="admin-table"><thead><tr><th>Status</th><th>Device ID</th><th>Label</th><th>Organization</th><th>Coordinates</th><th>Actions</th></tr></thead><tbody>';
+  rsus.forEach(function(r) {
+    html += '<tr>' +
+      '<td><span class="admin-status-dot" style="background:var(--green);"></span><span style="color:var(--green);font-size:11px;font-weight:600;">ONLINE</span></td>' +
+      '<td class="mono" style="font-weight:600;color:var(--text-primary);">' + esc(r.device_id) + '</td>' +
+      '<td style="color:var(--text-dim);">' + esc(r.label || '--') + '</td>' +
+      '<td>' + esc(r.cluster) + '</td>' +
+      '<td class="mono" style="font-size:10px;">' + (r.lat || 0).toFixed(4) + ', ' + (r.lng || 0).toFixed(4) + '</td>' +
+      '<td>' +
+      '<button class="admin-action-btn" onclick="adminRsuForm(\'' + r.org.id + '\',' + r.idx + ')" title="Edit RSU">&#9998;</button>' +
+      '<button class="admin-action-btn danger" onclick="adminDeleteRsu(\'' + r.org.id + '\',' + r.idx + ',\'' + esc(r.device_id) + '\')" title="Delete RSU">&#128465;</button>' +
+      '</td></tr>';
+  });
+  html += '</tbody></table>';
+  body.innerHTML = html;
+}
+
+var adminRsuMap = null;
+var adminRsuMarker = null;
+
+function adminRsuForm(orgId, rsuIdx) {
+  var org = orgId ? adminOrgsCache.find(function(o) { return o.id === orgId; }) : null;
+  var rsu = org && rsuIdx !== undefined ? (org.demo_rsus || [])[rsuIdx] : null;
+  var isEdit = !!rsu;
+
+  var orgOpts = '<option value="">Select Organization</option>';
+  adminOrgsCache.forEach(function(o) {
+    orgOpts += '<option value="' + o.id + '"' + (org && org.id === o.id ? ' selected' : '') + '>' + esc(o.name) + '</option>';
+  });
+
+  var el = document.getElementById('adminPageContent');
+  el.innerHTML = '<div class="admin-page-header"><h1>' + (isEdit ? 'Edit' : 'Add') + ' RSU</h1></div>' +
+    '<div class="admin-page-body"><div class="admin-form">' +
+    '<div class="admin-form-row">' +
+    '<div class="admin-form-field"><label>Organization</label><select id="afRsuOrg"' + (isEdit ? ' disabled' : '') + '>' + orgOpts + '</select></div>' +
+    '<div class="admin-form-field"><label>Device ID</label><input id="afRsuDeviceId" value="' + (rsu ? esc(rsu.device_id) : '') + '" placeholder="e.g. RSU-001"></div></div>' +
+    '<div class="admin-form-row">' +
+    '<div class="admin-form-field"><label>Label</label><input id="afRsuLabel" value="' + (rsu ? esc(rsu.label || '') : '') + '" placeholder="e.g. North Tower"></div>' +
+    '<div class="admin-form-field"><label>Latitude</label><input id="afRsuLat" type="number" step="0.0001" value="' + (rsu ? rsu.lat : '') + '" placeholder="31.7683"></div></div>' +
+    '<div class="admin-form-row">' +
+    '<div class="admin-form-field"><label>Longitude</label><input id="afRsuLng" type="number" step="0.0001" value="' + (rsu ? rsu.lng : '') + '" placeholder="35.2137"></div>' +
+    '<div class="admin-form-field"></div></div>' +
+    '<div id="adminRsuMapContainer" style="height:350px;border-radius:8px;border:1px solid var(--border);overflow:hidden;margin-bottom:12px;"></div>' +
+    '<div style="font-size:10px;color:var(--text-dim);margin-bottom:12px;">Click on the map to place the RSU. Existing RSUs shown as markers.</div>' +
+    '<div class="admin-form-actions">' +
+    '<button class="admin-btn admin-btn-primary" onclick="adminSaveRsu(' + (isEdit ? '\'' + org.id + '\',' + rsuIdx : '') + ')">Save RSU</button>' +
+    '<button class="admin-btn" onclick="adminPageRsus()">Cancel</button>' +
+    '</div></div></div>';
+
+  // Initialize map after DOM render
+  setTimeout(function() {
+    var center = rsu ? [rsu.lat, rsu.lng] : [31.5, 34.8];
+    var zoom = rsu ? 14 : 8;
+    adminRsuMap = L.map('adminRsuMapContainer', { zoomControl: true }).setView(center, zoom);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '', maxZoom: 19
+    }).addTo(adminRsuMap);
+
+    // Show org cluster polygon if available
+    var selOrg = org || (adminOrgsCache.length > 0 ? adminOrgsCache[0] : null);
+    if (selOrg && selOrg.cluster && selOrg.cluster.coordinates) {
+      var coords = selOrg.cluster.coordinates[0].map(function(c) { return [c[1], c[0]]; });
+      L.polygon(coords, { color: '#40a9ff', fillOpacity: 0.08, weight: 1.5, dashArray: '4 4' }).addTo(adminRsuMap);
+      if (!rsu) adminRsuMap.fitBounds(coords, { padding: [20, 20] });
+    }
+
+    // Show existing RSUs from all orgs as small markers
+    adminOrgsCache.forEach(function(o) {
+      (o.demo_rsus || []).forEach(function(r) {
+        var isCurrentRsu = rsu && r.device_id === rsu.device_id && o.id === org.id;
+        if (!isCurrentRsu) {
+          L.circleMarker([r.lat, r.lng], { radius: 5, color: '#556580', fillColor: '#556580', fillOpacity: 0.6, weight: 1 })
+            .bindTooltip(r.device_id + (r.label ? ' — ' + r.label : ''), { permanent: false })
+            .addTo(adminRsuMap);
+        }
+      });
+    });
+
+    // Place editable marker for current RSU
+    if (rsu) {
+      adminRsuMarker = L.marker([rsu.lat, rsu.lng], { draggable: true }).addTo(adminRsuMap);
+      adminRsuMarker.on('dragend', function() {
+        var pos = adminRsuMarker.getLatLng();
+        document.getElementById('afRsuLat').value = pos.lat.toFixed(6);
+        document.getElementById('afRsuLng').value = pos.lng.toFixed(6);
+      });
+    }
+
+    // Click to place
+    adminRsuMap.on('click', function(e) {
+      document.getElementById('afRsuLat').value = e.latlng.lat.toFixed(6);
+      document.getElementById('afRsuLng').value = e.latlng.lng.toFixed(6);
+      if (adminRsuMarker) {
+        adminRsuMarker.setLatLng(e.latlng);
+      } else {
+        adminRsuMarker = L.marker(e.latlng, { draggable: true }).addTo(adminRsuMap);
+        adminRsuMarker.on('dragend', function() {
+          var pos = adminRsuMarker.getLatLng();
+          document.getElementById('afRsuLat').value = pos.lat.toFixed(6);
+          document.getElementById('afRsuLng').value = pos.lng.toFixed(6);
+        });
+      }
+    });
+
+    // When org dropdown changes, re-center on that org's cluster
+    var orgSelect = document.getElementById('afRsuOrg');
+    if (orgSelect && !isEdit) {
+      orgSelect.addEventListener('change', function() {
+        var selO = adminOrgsCache.find(function(o) { return o.id === orgSelect.value; });
+        if (selO && selO.cluster && selO.cluster.coordinates) {
+          var c = selO.cluster.coordinates[0].map(function(p) { return [p[1], p[0]]; });
+          adminRsuMap.fitBounds(c, { padding: [20, 20] });
+        }
+      });
+    }
+  }, 50);
+}
+
+function adminSaveRsu(editOrgId, editIdx) {
+  var orgId = editOrgId || document.getElementById('afRsuOrg').value;
+  if (!orgId) { alert('Please select an organization'); return; }
+  var deviceId = document.getElementById('afRsuDeviceId').value.trim();
+  if (!deviceId) { alert('Device ID is required'); return; }
+  var lat = parseFloat(document.getElementById('afRsuLat').value);
+  var lng = parseFloat(document.getElementById('afRsuLng').value);
+  if (isNaN(lat) || isNaN(lng)) { alert('Valid lat/lng required'); return; }
+
+  var org = adminOrgsCache.find(function(o) { return o.id === orgId; });
+  if (!org) { alert('Org not found'); return; }
+
+  var rsus = JSON.parse(JSON.stringify(org.demo_rsus || []));
+  var rsuEntry = { device_id: deviceId, label: document.getElementById('afRsuLabel').value.trim(), lat: lat, lng: lng };
+
+  if (editIdx !== undefined) {
+    rsus[editIdx] = rsuEntry;
+  } else {
+    rsus.push(rsuEntry);
+  }
+
+  authFetch(API_BASE + '/api/admin/orgs/' + orgId, {
+    method: 'PUT',
+    body: JSON.stringify({ demo_rsus: rsus })
+  }).then(function(r) { return r.json(); })
+    .then(function(j) { if (j.ok) adminPageRsus(); else alert(j.error || 'Failed to save RSU'); });
+}
+
+function adminDeleteRsu(orgId, rsuIdx, deviceId) {
+  if (!confirm('Delete RSU "' + deviceId + '"?')) return;
+  var org = adminOrgsCache.find(function(o) { return o.id === orgId; });
+  if (!org) return;
+  var rsus = JSON.parse(JSON.stringify(org.demo_rsus || []));
+  rsus.splice(rsuIdx, 1);
+  authFetch(API_BASE + '/api/admin/orgs/' + orgId, {
+    method: 'PUT',
+    body: JSON.stringify({ demo_rsus: rsus })
+  }).then(function(r) { return r.json(); })
+    .then(function(j) { if (j.ok) adminPageRsus(); else alert(j.error || 'Failed'); });
+}
+
+// -----------------------------------------------------------------------
+// PAGE: Users
+// -----------------------------------------------------------------------
+function adminPageUsers() {
+  var el = document.getElementById('adminPageContent');
+  el.innerHTML = '<div class="admin-page-header"><div class="admin-header-row">' +
+    '<div><h1>User Management</h1><p id="userCount">Loading...</p></div>' +
+    '<button class="admin-create-btn" onclick="adminUserForm()">+ Create User</button>' +
+    '</div></div><div class="admin-page-body" id="adminUsersBody"><div style="color:var(--text-dim);">Loading...</div></div>';
+  Promise.all([adminLoadOrgs(), adminLoadUsers()]).then(function() { adminRenderUsers(); });
+}
+
+function adminRenderUsers() {
+  var body = document.getElementById('adminUsersBody');
+  var countEl = document.getElementById('userCount');
+  if (countEl) countEl.textContent = adminUsersCache.length + ' users';
+  var html = '<table class="admin-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Organization</th><th>Created</th><th>Actions</th></tr></thead><tbody>';
+  adminUsersCache.forEach(function(u) {
+    var orgName = u.org_id ? (adminOrgsCache.find(function(o) { return o.id === u.org_id; }) || {}).name || '...' : 'Global';
+    var roleColor = u.role === 'super_admin' ? 'var(--critical)' : u.role === 'admin' ? 'var(--accent)' : 'var(--text-dim)';
+    var d = u.created_at ? new Date(u.created_at) : null;
+    html += '<tr>' +
+      '<td style="font-weight:600;color:var(--text-primary);">' + esc(u.name) + '</td>' +
+      '<td class="mono" style="font-size:11px;">' + esc(u.email) + '</td>' +
+      '<td><span style="color:' + roleColor + ';font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">' + u.role + '</span></td>' +
+      '<td>' + esc(orgName) + '</td>' +
+      '<td style="font-size:11px;color:var(--text-dim);">' + (d ? adminTimeAgo(d) : '') + '</td>' +
+      '<td><button class="admin-action-btn" onclick="adminUserForm(\'' + u.id + '\')" title="Edit">&#9998;</button>' +
+      '<button class="admin-action-btn danger" onclick="adminDeleteUser(\'' + u.id + '\',\'' + esc(u.name) + '\')" title="Delete">&#128465;</button></td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  body.innerHTML = html;
+}
+
+function adminUserForm(userId) {
+  var user = userId ? adminUsersCache.find(function(u) { return u.id === userId; }) : null;
+  var isEdit = !!user;
+  var orgOpts = '<option value="">None (super_admin)</option>';
+  adminOrgsCache.forEach(function(o) {
+    orgOpts += '<option value="' + o.id + '"' + (user && user.org_id === o.id ? ' selected' : '') + '>' + esc(o.name) + '</option>';
+  });
+  var el = document.getElementById('adminPageContent');
+  el.innerHTML = '<div class="admin-page-header"><h1>' + (isEdit ? 'Edit' : 'Create') + ' User</h1></div>' +
+    '<div class="admin-page-body"><div class="admin-form">' +
+    '<div class="admin-form-row">' +
+    '<div class="admin-form-field"><label>Name</label><input id="afUserName" value="' + (user ? esc(user.name) : '') + '"></div>' +
+    '<div class="admin-form-field"><label>Email</label><input id="afUserEmail" type="email" value="' + (user ? esc(user.email) : '') + '"></div></div>' +
+    '<div class="admin-form-row">' +
+    '<div class="admin-form-field"><label>Password' + (isEdit ? ' (leave blank to keep)' : '') + '</label><input id="afUserPass" type="password"></div>' +
+    '<div class="admin-form-field"><label>Role</label><select id="afUserRole">' +
+    '<option value="operator"' + (user && user.role === 'operator' ? ' selected' : '') + '>Operator</option>' +
+    '<option value="admin"' + (user && user.role === 'admin' ? ' selected' : '') + '>Admin</option>' +
+    '<option value="super_admin"' + (user && user.role === 'super_admin' ? ' selected' : '') + '>Super Admin</option></select></div></div>' +
+    '<div class="admin-form-field"><label>Organization</label><select id="afUserOrg">' + orgOpts + '</select></div>' +
+    '<div class="admin-form-actions">' +
+    '<button class="admin-btn admin-btn-primary" onclick="adminSaveUser(' + (isEdit ? '\'' + user.id + '\'' : 'null') + ')">Save User</button>' +
+    '<button class="admin-btn" onclick="adminPageUsers()">Cancel</button>' +
+    (isEdit ? '<button class="admin-btn admin-btn-danger" onclick="adminDeleteUser(\'' + user.id + '\',\'' + esc(user.name) + '\')" style="margin-left:auto;">Delete</button>' : '') +
+    '</div></div></div>';
+}
+
+function adminSaveUser(userId) {
+  var body = {
+    name: document.getElementById('afUserName').value.trim(),
+    email: document.getElementById('afUserEmail').value.trim(),
+    role: document.getElementById('afUserRole').value,
+    org_id: document.getElementById('afUserOrg').value || null,
+  };
+  var pass = document.getElementById('afUserPass').value;
+  if (pass) body.password = pass;
+  if (!userId && !pass) { alert('Password required for new user'); return; }
+  var url = userId ? API_BASE + '/api/admin/users/' + userId : API_BASE + '/api/admin/users';
+  authFetch(url, { method: userId ? 'PUT' : 'POST', body: JSON.stringify(body) })
+    .then(function(r) { return r.json(); })
+    .then(function(j) { if (j.ok) adminPageUsers(); else alert(j.error || 'Failed'); });
+}
+
+function adminDeleteUser(userId, name) {
+  if (!confirm('Delete user "' + name + '"?')) return;
+  authFetch(API_BASE + '/api/admin/users/' + userId, { method: 'DELETE' })
+    .then(function(r) { return r.json(); })
+    .then(function(j) { if (j.ok) adminPageUsers(); else alert(j.error || 'Failed'); });
+}
+
+// -----------------------------------------------------------------------
+// PAGE: Settings (ClickHouse)
+// -----------------------------------------------------------------------
+function adminPageSettings() {
+  var el = document.getElementById('adminPageContent');
+  el.innerHTML = '<div class="admin-page-header"><h1>Settings</h1><p>ClickHouse connection and system configuration</p></div>' +
+    '<div class="admin-page-body" id="adminSettingsBody"><div style="color:var(--text-dim);">Loading...</div></div>';
+  authFetch(API_BASE + '/api/settings/clickhouse').then(function(r) { return r.json(); }).then(function(j) {
+    var d = j.data || {};
+    document.getElementById('adminSettingsBody').innerHTML = '<div class="admin-form" style="max-width:560px;">' +
+      '<h3>ClickHouse Connection</h3>' +
+      '<div class="admin-form-row">' +
+      '<div class="admin-form-field" style="flex:3;"><label>Host</label><input id="asCHHost" value="' + (d.host || '') + '"></div>' +
+      '<div class="admin-form-field" style="flex:1;"><label>Port</label><input id="asCHPort" type="number" value="' + (d.port || 8443) + '"></div></div>' +
+      '<div class="admin-form-row">' +
+      '<div class="admin-form-field"><label>Database</label><input id="asCHDb" value="' + (d.database || 'default') + '"></div>' +
+      '<div class="admin-form-field"><label>Username</label><input id="asCHUser" value="' + (d.username || '') + '"></div></div>' +
+      '<div class="admin-form-field"><label>Password</label><input id="asCHPass" type="password" value="' + (d.hasPassword ? '••••••••' : '') + '"></div>' +
+      '<div id="asCHStatus" style="display:none;padding:8px 12px;border-radius:5px;font-size:11px;margin-top:10px;"></div>' +
+      '<div class="admin-form-actions">' +
+      '<button class="admin-btn" onclick="adminSettingsTest()">Test Connection</button>' +
+      '<button class="admin-btn admin-btn-primary" onclick="adminSettingsSave()">Save &amp; Connect</button>' +
+      '</div></div>';
+  });
+}
+
+function adminSettingsPost(showSave) {
+  var st = document.getElementById('asCHStatus');
+  st.style.display = 'block'; st.style.background = 'var(--green-bg)'; st.style.color = 'var(--green)'; st.textContent = 'Testing...';
+  var body = {
+    host: document.getElementById('asCHHost').value.trim(),
+    port: parseInt(document.getElementById('asCHPort').value, 10) || 8443,
+    database: document.getElementById('asCHDb').value.trim() || 'default',
+    username: document.getElementById('asCHUser').value.trim(),
+    password: document.getElementById('asCHPass').value,
+  };
+  authFetch(API_BASE + '/api/settings/clickhouse', { method: 'POST', body: JSON.stringify(body) })
+    .then(function(r) { return r.json(); })
+    .then(function(j) {
+      if (j.ok) { st.textContent = showSave ? 'Connected! Settings saved.' : 'Connection successful'; updateDbStatus(true); }
+      else { st.style.background = 'var(--critical-bg)'; st.style.color = 'var(--critical)'; st.textContent = j.error || 'Failed'; updateDbStatus(false); }
+    });
+}
+function adminSettingsTest() { adminSettingsPost(false); }
+function adminSettingsSave() { adminSettingsPost(true); }
+
+// -----------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------
+function adminTimeAgo(date) {
+  var s = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s/60) + ' min ago';
+  if (s < 86400) return Math.floor(s/3600) + ' hours ago';
+  if (s < 2592000) return Math.floor(s/86400) + ' days ago';
+  return Math.floor(s/2592000) + ' months ago';
+}
+
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
 
 <!-- Threshold Configuration Modal -->
@@ -5041,6 +7187,7 @@ function renderTimelineWifi(currentTs) {
 </style>
 
 <!-- ClickHouse Connection Settings Modal -->
+
 <div id="connModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;justify-content:center;align-items:center;">
   <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:24px;width:440px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">

@@ -60,20 +60,17 @@ async function run() {
   await testQuery('24H COUNT', 'SELECT count() AS total FROM measurements WHERE timestamp > now() - INTERVAL 24 HOUR');
 
   // 4. Check signal columns we use in the dashboard
-  await testQuery('SIGNAL SAMPLE', `SELECT signal_rsrp, signal_sinr, signal_timingAdvance, network_rat
+  await testQuery('SIGNAL SAMPLE', `SELECT signal_rsrp, signal_snr, signal_timingAdvance, tech
     FROM measurements LIMIT 3`);
 
   // 5. Check PLMN columns
-  await testQuery('PLMN SAMPLE', `SELECT cell_plmn, network_PLMN, count() AS c FROM measurements
-    WHERE cell_plmn != '' AND cell_plmn IS NOT NULL
-    GROUP BY cell_plmn, network_PLMN ORDER BY c DESC LIMIT 5`);
+  await testQuery('PLMN SAMPLE', `SELECT network_PLMN, network_mcc, network_mnc, count() AS c FROM measurements
+    WHERE network_PLMN != ''
+    GROUP BY network_PLMN, network_mcc, network_mnc ORDER BY c DESC LIMIT 5`);
 
   // 6. Check location columns
   await testQuery('LOCATION SAMPLE', `SELECT location_lat_rounded, location_lng_rounded
     FROM measurements WHERE location_lat_rounded != 0 LIMIT 3`);
-
-  // 7. Check system.parts access
-  await testQuery('SYSTEM.PARTS', `SELECT sum(rows) AS total FROM system.parts WHERE table = 'measurements' AND active = 1`);
 
   // 8. Sites table schema
   await testQuery('SITES COLUMNS', 'DESCRIBE TABLE sites');

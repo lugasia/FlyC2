@@ -589,8 +589,11 @@ async function runRules(measurements, knownCells, expectedMCCs = [], regionBbox 
     // =====================================================================
     if (isRuleEnabled('CELL_LOCATION_MISMATCH') && mccMatchesRegion && enbId && mLat && mLng) {
       // Band-aware max range (km) — based on frequency propagation physics
-      let bandMaxRange = getThreshold('CELL_LOCATION_MISMATCH', 'minDistanceKm', 5.0);
-      if (earfcn) {
+      // User-configured threshold takes precedence; band defaults only when using default (5.0)
+      const userDistThreshold = getThreshold('CELL_LOCATION_MISMATCH', 'minDistanceKm', 5.0);
+      const userCustomized = thresholds.CELL_LOCATION_MISMATCH && thresholds.CELL_LOCATION_MISMATCH.minDistanceKm !== undefined && thresholds.CELL_LOCATION_MISMATCH.minDistanceKm !== 5.0;
+      let bandMaxRange = userDistThreshold;
+      if (!userCustomized && earfcn) {
         const bandInfo = config.earfcnToBandExported ? config.earfcnToBandExported(earfcn) : null;
         const bandNum = bandInfo || null;
         if (bandNum) {
@@ -939,9 +942,10 @@ async function runRules(measurements, knownCells, expectedMCCs = [], regionBbox 
     // Requires ≥2 unique devices on the same cell to avoid single-device flukes.
     // =====================================================================
     if (isRuleEnabled('DOWNGRADE_2G') && DOWNGRADE_RATS.has(String(m.tech).toUpperCase())) {
+      const dgMinSamples = getThreshold('DOWNGRADE_2G', 'minUniqueSamples', 2);
       const dgKey = String(m.cell_pci || 'x');
       const dgCluster = downgradeClusters[dgKey];
-      if (dgCluster && dgCluster.devices.size >= 2) {
+      if (dgCluster && dgCluster.devices.size >= dgMinSamples) {
         flags.push({ sample_id: m.sample_id, rule: 'NETWORK_DOWNGRADE', severity: HIGH, score: 0.75,
           details: `RAT downgraded to ${m.tech} on PCI ${m.cell_pci || '?'} — ${dgCluster.devices.size} devices on 2G (A5/1 broken)`,
           ...baseFlag });

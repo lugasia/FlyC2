@@ -1,0 +1,49 @@
+{
+  "orgs": [
+    {
+      "id": "org-flycomm-demo",
+      "name": "Flycomm Demo",
+      "license": "BOTH",
+      "cluster": {
+        "type": "Polygon",
+        "coordinates": [[[34.0, 31.0], [36.0, 31.0], [36.0, 33.5], [34.0, 33.5], [34.0, 31.0]]]
+      },
+      "sub_clusters": [
+        {
+          "name": "Tel Aviv Metro",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [[[34.7, 32.0], [34.9, 32.0], [34.9, 32.15], [34.7, 32.15], [34.7, 32.0]]]
+          }
+        }
+      ],
+      "logo_url": null,
+      "demo_mode": true,
+      "demo_rsus": [
+        { "device_id": "DEMO-RSU-001", "lat": 32.08, "lng": 34.78, "label": "TLV Tower" },
+        { "device_id": "DEMO-RSU-002", "lat": 31.77, "lng": 35.21, "label": "Jerusalem HQ" }
+      ],
+      "created_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "user-super-admin",
+      "email": "admin@flycomm.io",
+      "password_hash": "$BCRYPT_HASH_HERE",
+      "name": "Super Admin",
+      "org_id": null,
+      "role": "super_admin",
+      "created_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "user-demo-operator",
+      "email": "demo@flycomm.io",
+      "password_hash": "$BCRYPT_HASH_HERE",
+      "name": "Demo Operator",
+      "org_id": "org-flycomm-demo",
+      "role": "operator",
+      "created_at": "2026-01-01T00:00:00.000Z"
+    }
+  ]
+}

@@ -5,6 +5,10 @@ let client = null;
 
 function getClient() {
   if (!client) {
+    const credentials = Buffer.from(
+      `${config.clickhouse.username}:${config.clickhouse.password}`
+    ).toString('base64');
+
     client = createClient({
       url: `https://${config.clickhouse.host}:${config.clickhouse.port}`,
       database: config.clickhouse.database,
@@ -13,12 +17,11 @@ function getClient() {
       request_timeout: 300000,
       max_open_connections: 1,
       keep_alive: {
-        enabled: false,
+        enabled: true,
+        idle_socket_ttl: 2500,
       },
-      clickhouse_settings: {
-        connect_timeout: 60,
-        receive_timeout: 300,
-        send_timeout: 300,
+      http_headers: {
+        Authorization: `Basic ${credentials}`,
       },
     });
 
@@ -50,8 +53,7 @@ async function queryWithRetry(queryOpts, retries = 2) {
         err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT' ||
         (err.message && (err.message.includes('socket hang up') ||
          err.message.includes('ECONNRESET') || err.message.includes('aborted') ||
-         err.message.includes('Timeout') || err.message.includes('TLS') ||
-         err.message.includes('disconnected')));
+         err.message.includes('Timeout')));
       if (isTransient && attempt < retries) {
         console.log(`[DB] Transient error (attempt ${attempt + 1}/${retries + 1}), retrying in ${attempt + 1}s: ${err.message}`);
         // Force new client on retry — old connections may be stale
@@ -62,6 +64,100 @@ async function queryWithRetry(queryOpts, retries = 2) {
       throw err;
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Time filter helper — supports both relative (hours) and absolute (startDate/endDate)
+// ---------------------------------------------------------------------------
+function buildTimeClause(hoursBack, timeFilter, params) {
+  if (timeFilter && timeFilter.startDate && timeFilter.endDate) {
+    params.tsStart = timeFilter.startDate;
+    params.tsEnd = timeFilter.endDate;
+    return `timestamp BETWEEN parseDateTimeBestEffort({tsStart:String}) AND parseDateTimeBestEffort({tsEnd:String})`;
+  }
+  return `timestamp > now() - INTERVAL ${Math.round(hoursBack)} HOUR`;
+}
+
+// ---------------------------------------------------------------------------
+// Combined targeted anomaly query — TA=0 + MCC + downgrades in one UNION ALL
+// Saves 2 round-trips vs 3 separate queries
+// ---------------------------------------------------------------------------
+const MEASUREMENT_COLS = `timestamp, cell_pci, cell_eci, cell_ecgi, cell_enb, cell_tac,
+  network_PLMN, network_mcc, network_mnc, network_iso,
+  tech, signal_rsrp, signal_rssi, signal_snr, signal_timingAdvance, signal_txPower,
+  band_downlinkEarfcn, band_downlinkFrequency, band_name, band_number,
+  location_lat_rounded, location_lng_rounded,
+  network_isRoaming, network_operator,
+  sample_id, deviceInfo_deviceId, deviceInfo_deviceModel,
+  connectionStatus, isRegistered, source`;
+
+async function getTargetedAnomalies(bbox, expectedMCCs, hoursBack = 24, timeFilter = null, sourceFilter = null) {
+  const params = {};
+  const timeClause = buildTimeClause(hoursBack, timeFilter, params);
+  let bboxClause = '';
+  if (bbox) {
+    bboxClause = `AND location_lat_rounded >= {latMin:Float64}
+                  AND location_lat_rounded <= {latMax:Float64}
+                  AND location_lng_rounded >= {lngMin:Float64}
+                  AND location_lng_rounded <= {lngMax:Float64}`;
+    params.latMin = bbox.latMin; params.latMax = bbox.latMax;
+    params.lngMin = bbox.lngMin; params.lngMax = bbox.lngMax;
+  }
+  let sourceClause = '';
+  if (sourceFilter) {
+    sourceClause = `AND source = {sourceFilter:String}`;
+    params.sourceFilter = sourceFilter;
+  }
+
+  // Build MCC clause only if we have expected MCCs
+  let mccQuery = '';
+  if (expectedMCCs && expectedMCCs.length > 0 && bbox) {
+    const expectedNumeric = expectedMCCs.map(m => parseInt(m, 10));
+    params.expected_mcc = expectedNumeric;
+    mccQuery = `UNION ALL
+      SELECT ${MEASUREMENT_COLS}, 'mcc' AS _target
+      FROM measurements
+      WHERE ${timeClause}
+        AND network_mcc NOT IN ({expected_mcc:Array(UInt16)})
+        AND network_mcc > 0
+        ${bboxClause}
+        ${sourceClause}
+      LIMIT 500`;
+  }
+
+  const rs = await queryWithRetry({
+    query: `SELECT ${MEASUREMENT_COLS}, 'ta_zero' AS _target
+            FROM measurements
+            WHERE ${timeClause}
+              AND signal_timingAdvance <= 1
+              AND signal_timingAdvance >= 0
+              ${bboxClause}
+              ${sourceClause}
+            LIMIT 500
+            ${mccQuery}
+            UNION ALL
+            SELECT ${MEASUREMENT_COLS}, 'downgrade' AS _target
+            FROM measurements
+            WHERE ${timeClause}
+              AND tech IN ('GSM', 'EDGE', 'GPRS')
+              ${bboxClause}
+              ${sourceClause}
+            LIMIT 100`,
+    query_params: params,
+    format: 'JSONEachRow',
+  });
+  const rows = await rs.json();
+
+  // Split by _target tag
+  const taZeros = [], mccAnomalies = [], downgrades = [];
+  for (const r of rows) {
+    const target = r._target;
+    delete r._target;
+    if (target === 'ta_zero') taZeros.push(r);
+    else if (target === 'mcc') mccAnomalies.push(r);
+    else if (target === 'downgrade') downgrades.push(r);
+  }
+  return { taZeros, mccAnomalies, downgrades };
 }
 
 // ---------------------------------------------------------------------------
@@ -193,43 +289,40 @@ async function getCellBaselines(cellIds) {
  *
  * @param {Object} [bbox] - { latMin, latMax, lngMin, lngMax } — expanded by 3° margin
  */
+// Sites cache — 5730 rows, static data, refresh every hour
+let sitesCache = null;
+let sitesCacheTime = 0;
+const SITES_CACHE_TTL = 3600000; // 1 hour
+
 async function getKnownCells(bbox) {
-  let whereClause = '';
-  const params = {};
-
-  if (bbox) {
-    // Use a modest margin (1°) to include towers near borders
-    // but exclude foreign towers in neighboring countries (Cyprus, Lebanon, etc.)
-    // which cause eNB ID collisions with local towers.
-    const margin = 1.0;
-    whereClause = `WHERE lat >= {latMin:Float64}
-                     AND lat <= {latMax:Float64}
-                     AND lng >= {lngMin:Float64}
-                     AND lng <= {lngMax:Float64}
-                     AND lat != 0 AND lng != 0`;
-    params.latMin = bbox.latMin - margin;
-    params.latMax = bbox.latMax + margin;
-    params.lngMin = bbox.lngMin - margin;
-    params.lngMax = bbox.lngMax + margin;
+  // Load full sites table into cache on first call or after TTL
+  if (!sitesCache || (Date.now() - sitesCacheTime) > SITES_CACHE_TTL) {
+    console.log(`[DB] Loading sites table into cache...`);
+    const rs = await queryWithRetry({
+      query: `SELECT * FROM sites WHERE lat != 0 AND lng != 0`,
+      query_params: {},
+      format: 'JSONEachRow',
+    });
+    sitesCache = await rs.json();
+    sitesCacheTime = Date.now();
+    if (sitesCache.length > 0) {
+      const cols = Object.keys(sitesCache[0]);
+      console.log(`[DB] Sites cached: ${sitesCache.length} rows, columns: ${cols.join(', ')}`);
+      const sample = sitesCache[0];
+      console.log(`[DB] Sites sample: site_id=${sample.site_id}, lat=${sample.lat}, lng=${sample.lng}, plmn=${sample.plmn || sample.network_plmn || 'N/A'}`);
+    }
   }
 
-  const rs = await queryWithRetry({
-    query: `SELECT *
-            FROM sites
-            ${whereClause}`,
-    query_params: params,
-    format: 'JSONEachRow',
-  });
-  const rows = await rs.json();
-  // Log column names from first row to help identify PLMN column
-  if (rows.length > 0) {
-    const cols = Object.keys(rows[0]);
-    console.log(`[DB] Sites row columns: ${cols.join(', ')}`);
-    // Log first row for diagnostics
-    const sample = rows[0];
-    console.log(`[DB] Sites sample: site_id=${sample.site_id}, lat=${sample.lat}, lng=${sample.lng}, plmn=${sample.plmn || sample.network_plmn || sample.cell_plmn || sample.mcc_mnc || 'N/A'}`);
-  }
-  return rows;
+  // Filter by bbox in memory
+  if (!bbox) return sitesCache;
+  const margin = 1.0;
+  const latMin = bbox.latMin - margin;
+  const latMax = bbox.latMax + margin;
+  const lngMin = bbox.lngMin - margin;
+  const lngMax = bbox.lngMax + margin;
+  return sitesCache.filter(s =>
+    s.lat >= latMin && s.lat <= latMax && s.lng >= lngMin && s.lng <= lngMax
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -625,10 +718,73 @@ async function getRegionMeasurementStats(bbox) {
   return rows[0] || {};
 }
 
-async function getRecentMeasurementsFiltered(bbox, limit = 50, hoursBack = 24) {
-  // Always filter by time to avoid full-table scan on 838M+ rows
-  let whereClause = `WHERE timestamp > now() - INTERVAL ${Math.round(hoursBack)} HOUR`;
+/**
+ * Fast scan metadata: count + time bounds for progressive chunking.
+ * Returns { total, uniqueSamples, minTs, maxTs } — lightweight, no payload.
+ */
+async function getScanMeta(bbox, hoursBack = 24, timeFilter = null, sourceFilter = null) {
+  const params = {};
+  let whereClause = `WHERE ${buildTimeClause(hoursBack, timeFilter, params)}`;
+  if (bbox) {
+    whereClause += ` AND location_lat_rounded >= {latMin:Float64}
+                     AND location_lat_rounded <= {latMax:Float64}
+                     AND location_lng_rounded >= {lngMin:Float64}
+                     AND location_lng_rounded <= {lngMax:Float64}`;
+    params.latMin = bbox.latMin; params.latMax = bbox.latMax;
+    params.lngMin = bbox.lngMin; params.lngMax = bbox.lngMax;
+  }
+  if (sourceFilter) {
+    whereClause += ` AND source = {sourceFilter:String}`;
+    params.sourceFilter = sourceFilter;
+  }
+  const rs = await queryWithRetry({
+    query: `SELECT count() AS total,
+                   uniqExact(sample_id) AS unique_samples,
+                   min(timestamp) AS min_ts,
+                   max(timestamp) AS max_ts,
+                   uniqExact(deviceInfo_deviceId) AS active_devices
+            FROM measurements ${whereClause}`,
+    query_params: params,
+    format: 'JSONEachRow',
+  });
+  const rows = await rs.json();
+  return rows[0] || { total: 0, unique_samples: 0, min_ts: null, max_ts: null, active_devices: 0 };
+}
+
+/**
+ * Fetch measurements within a specific time sub-window (for chunked scanning).
+ * No LIMIT — returns all rows in the window. Caller controls window size.
+ */
+async function getMeasurementsInTimeWindow(bbox, startTs, endTs, sourceFilter = null) {
+  const params = { tsStart: startTs, tsEnd: endTs };
+  let whereClause = `WHERE timestamp >= parseDateTimeBestEffort({tsStart:String})
+                     AND timestamp < parseDateTimeBestEffort({tsEnd:String})`;
+  if (bbox) {
+    whereClause += ` AND location_lat_rounded >= {latMin:Float64}
+                     AND location_lat_rounded <= {latMax:Float64}
+                     AND location_lng_rounded >= {lngMin:Float64}
+                     AND location_lng_rounded <= {lngMax:Float64}`;
+    params.latMin = bbox.latMin; params.latMax = bbox.latMax;
+    params.lngMin = bbox.lngMin; params.lngMax = bbox.lngMax;
+  }
+  if (sourceFilter) {
+    whereClause += ` AND source = {sourceFilter:String}`;
+    params.sourceFilter = sourceFilter;
+  }
+  const rs = await queryWithRetry({
+    query: `SELECT ${MEASUREMENT_COLS}
+            FROM measurements
+            ${whereClause}
+            ORDER BY timestamp ASC`,
+    query_params: params,
+    format: 'JSONEachRow',
+  });
+  return rs.json();
+}
+
+async function getRecentMeasurementsFiltered(bbox, limit = 50, hoursBack = 24, timeFilter = null, sourceFilter = null) {
   const params = { limit };
+  let whereClause = `WHERE ${buildTimeClause(hoursBack, timeFilter, params)}`;
   if (bbox) {
     whereClause += ` AND location_lat_rounded >= {latMin:Float64}
                      AND location_lat_rounded <= {latMax:Float64}
@@ -639,24 +795,89 @@ async function getRecentMeasurementsFiltered(bbox, limit = 50, hoursBack = 24) {
     params.lngMin = bbox.lngMin;
     params.lngMax = bbox.lngMax;
   }
+  if (sourceFilter) {
+    whereClause += ` AND source = {sourceFilter:String}`;
+    params.sourceFilter = sourceFilter;
+  }
+
+  // For ranges > 3 days, use cityHash64 sampling to spread results across the full
+  // time window instead of ORDER BY timestamp DESC which only returns the newest rows.
+  const orderClause = hoursBack > 72
+    ? 'ORDER BY cityHash64(sample_id)'
+    : 'ORDER BY timestamp DESC';
 
   const rs = await queryWithRetry({
-    query: `SELECT timestamp, cell_pci, cell_eci, cell_ecgi, cell_enb, cell_tac,
-                   network_PLMN, network_mcc, network_mnc, network_iso,
-                   tech, signal_rsrp, signal_rssi, signal_snr, signal_timingAdvance, signal_txPower,
-                   band_downlinkEarfcn, band_downlinkFrequency, band_name, band_number,
-                   location_lat_rounded, location_lng_rounded,
-                   network_isRoaming, network_operator,
-                   sample_id, deviceInfo_deviceId, deviceInfo_deviceModel,
-                   connectionStatus, isRegistered, source
+    query: `SELECT ${MEASUREMENT_COLS}
             FROM measurements
             ${whereClause}
-            ORDER BY timestamp DESC
+            ${orderClause}
             LIMIT {limit:UInt32}`,
     query_params: params,
     format: 'JSONEachRow',
   });
   return rs.json();
+}
+
+/**
+ * Chunked full-coverage scan: get ALL unique samples in bbox+time range.
+ * Strategy: first get distinct sample_ids (lightweight), then fetch full rows in chunks.
+ * This avoids the LIMIT problem where 1000 raw rows → only ~200 unique samples.
+ * @param {number} maxSamples - safety cap on total unique samples (default 5000)
+ */
+async function getAllUniqueMeasurements(bbox, hoursBack = 24, timeFilter = null, sourceFilter = null, maxSamples = 5000) {
+  const params = {};
+  let whereClause = `WHERE ${buildTimeClause(hoursBack, timeFilter, params)}`;
+  if (bbox) {
+    whereClause += ` AND location_lat_rounded >= {latMin:Float64}
+                     AND location_lat_rounded <= {latMax:Float64}
+                     AND location_lng_rounded >= {lngMin:Float64}
+                     AND location_lng_rounded <= {lngMax:Float64}`;
+    params.latMin = bbox.latMin;
+    params.latMax = bbox.latMax;
+    params.lngMin = bbox.lngMin;
+    params.lngMax = bbox.lngMax;
+  }
+  if (sourceFilter) {
+    whereClause += ` AND source = {sourceFilter:String}`;
+    params.sourceFilter = sourceFilter;
+  }
+
+  // Step 1: Get all unique sample_ids (fast — just IDs, no payload)
+  const idParams = { ...params, maxSamples };
+  const idRs = await queryWithRetry({
+    query: `SELECT DISTINCT sample_id
+            FROM measurements
+            ${whereClause}
+            ORDER BY sample_id
+            LIMIT {maxSamples:UInt32}`,
+    query_params: idParams,
+    format: 'JSONEachRow',
+  });
+  const sampleIds = (await idRs.json()).map(r => r.sample_id);
+
+  if (sampleIds.length === 0) return [];
+
+  // Step 2: Fetch full measurement rows in chunks of 500 sample_ids
+  const CHUNK_SIZE = 500;
+  const allRows = [];
+  for (let i = 0; i < sampleIds.length; i += CHUNK_SIZE) {
+    const chunk = sampleIds.slice(i, i + CHUNK_SIZE);
+    const chunkParams = {
+      sampleIds: chunk,
+    };
+    const chunkRs = await queryWithRetry({
+      query: `SELECT ${MEASUREMENT_COLS}
+              FROM measurements
+              WHERE sample_id IN ({sampleIds:Array(String)})`,
+      query_params: chunkParams,
+      format: 'JSONEachRow',
+    });
+    const rows = await chunkRs.json();
+    allRows.push(...rows);
+  }
+
+  console.log(`[DB] getAllUniqueMeasurements: ${sampleIds.length} unique sample_ids → ${allRows.length} total rows (${Math.ceil(sampleIds.length / CHUNK_SIZE)} chunks)`);
+  return allRows;
 }
 
 // ---------------------------------------------------------------------------
@@ -669,11 +890,17 @@ async function getRecentMeasurementsFiltered(bbox, limit = 50, hoursBack = 24) {
  * (e.g. MCC 525 Singapore showing up in Israel = suspicious).
  * Requires bbox to avoid flagging legitimate measurements from other countries.
  */
-async function getMCCAnomalyMeasurements(expectedMCCs, bbox, limit = 100, hoursBack = 24) {
+async function getMCCAnomalyMeasurements(expectedMCCs, bbox, limit = 100, hoursBack = 24, timeFilter = null) {
   if (!expectedMCCs || expectedMCCs.length === 0) return [];
-  if (!bbox) return []; // Must have bbox — without it we'd flag every non-local measurement worldwide
+  if (!bbox) return [];
 
   const expectedNumeric = expectedMCCs.map(m => parseInt(m, 10));
+  const params = {
+    expected_numeric: expectedNumeric, limit,
+    latMin: bbox.latMin, latMax: bbox.latMax,
+    lngMin: bbox.lngMin, lngMax: bbox.lngMax,
+  };
+  const timeClause = buildTimeClause(hoursBack, timeFilter, params);
 
   const rs = await queryWithRetry({
     query: `SELECT timestamp, cell_pci, cell_eci, cell_ecgi, cell_enb, cell_tac,
@@ -685,7 +912,7 @@ async function getMCCAnomalyMeasurements(expectedMCCs, bbox, limit = 100, hoursB
                    sample_id, deviceInfo_deviceId, deviceInfo_deviceModel,
                    connectionStatus, isRegistered, source
             FROM measurements
-            WHERE timestamp > now() - INTERVAL {hours:UInt32} HOUR
+            WHERE ${timeClause}
               AND network_mcc NOT IN ({expected_numeric:Array(UInt16)})
               AND network_mcc > 0
               AND location_lat_rounded >= {latMin:Float64}
@@ -694,12 +921,7 @@ async function getMCCAnomalyMeasurements(expectedMCCs, bbox, limit = 100, hoursB
               AND location_lng_rounded <= {lngMax:Float64}
             ORDER BY timestamp DESC
             LIMIT {limit:UInt32}`,
-    query_params: {
-      expected_numeric: expectedNumeric, limit,
-      hours: Math.round(hoursBack),
-      latMin: bbox.latMin, latMax: bbox.latMax,
-      lngMin: bbox.lngMin, lngMax: bbox.lngMax,
-    },
+    query_params: params,
     format: 'JSONEachRow',
   });
   return rs.json();
@@ -715,6 +937,7 @@ async function getMCCAnomalyMeasurements(expectedMCCs, bbox, limit = 100, hoursB
  * Also searches by PCI+EARFCN combo the user reported (PCI 31, EARFCN 9580).
  */
 async function getTestNetworkMeasurements(limit = 200, hoursBack = 168) {
+  // 1. Search measurements table (fast — indexed)
   const rs = await queryWithRetry({
     query: `SELECT timestamp, cell_pci, cell_eci, cell_ecgi, cell_enb, cell_tac,
                    network_PLMN, network_mcc, network_mnc, network_iso,
@@ -736,15 +959,55 @@ async function getTestNetworkMeasurements(limit = 200, hoursBack = 168) {
     query_params: { limit, hours: Math.round(hoursBack) },
     format: 'JSONEachRow',
   });
-  return rs.json();
+  const fromMeasurements = await rs.json();
+
+  // 2. Search bad_measurements for MCC 001 — pipeline moves test network samples there
+  //    Step 1: fast sample_id lookup using position() on raw_record (no JSON parsing in SQL)
+  //    Step 2: fetch full raw_record for matched sample_ids, parse in JS
+  let fromBad = [];
+  try {
+    // Step 1: find sample_ids that contain '001-01' in raw_record (fast string scan)
+    const rs2 = await queryWithRetry({
+      query: `SELECT sample_id
+              FROM bad_measurements
+              WHERE timestamp > now() - INTERVAL {hours:UInt32} HOUR
+                AND position(raw_record, '"PLMN":"001-01"') > 0
+              LIMIT {limit:UInt32}`,
+      query_params: { limit, hours: Math.round(hoursBack) },
+      format: 'JSONEachRow',
+    });
+    const candidates = await rs2.json();
+    if (candidates.length > 0) {
+      // Step 2: fetch full records by sample_id (fast — primary key lookup)
+      const sampleIds = candidates.map(r => r.sample_id);
+      const rs3 = await queryWithRetry({
+        query: `SELECT id, timestamp, sample_id, reason, raw_record
+                FROM bad_measurements
+                WHERE sample_id IN ({ids:Array(String)})
+                LIMIT {limit:UInt32}`,
+        query_params: { ids: sampleIds, limit },
+        format: 'JSONEachRow',
+      });
+      const badRows = await rs3.json();
+      for (const row of badRows) {
+        const parsed = parseBadMeasurementRawRecord(row);
+        if (parsed) fromBad.push(parsed);
+      }
+      console.log(`[DB] Found ${fromBad.length} MCC 001 samples in bad_measurements`);
+    }
+  } catch (err) {
+    console.log(`[DB] bad_measurements MCC 001 search skipped: ${err.message}`);
+  }
+
+  return [...fromMeasurements, ...fromBad];
 }
 
 /** Get measurements with TA=0 or TA=1 (potential IMSI catcher proximity indicator) */
-async function getTAZeroMeasurements(bbox, limit = 500, hoursBack = 24) {
-  let whereClause = `WHERE timestamp > now() - INTERVAL ${Math.round(hoursBack)} HOUR
+async function getTAZeroMeasurements(bbox, limit = 500, hoursBack = 24, timeFilter = null) {
+  const params = { limit };
+  let whereClause = `WHERE ${buildTimeClause(hoursBack, timeFilter, params)}
     AND signal_timingAdvance <= 1
     AND signal_timingAdvance >= 0`;
-  const params = { limit };
 
   if (bbox) {
     whereClause += ` AND location_lat_rounded >= {latMin:Float64}
@@ -777,10 +1040,10 @@ async function getTAZeroMeasurements(bbox, limit = 500, hoursBack = 24) {
 }
 
 /** Get 2G downgrade measurements (GSM/EDGE/GPRS — no mutual auth) */
-async function getDowngradeMeasurements(bbox, limit = 100, hoursBack = 24) {
-  let whereClause = `WHERE timestamp > now() - INTERVAL ${Math.round(hoursBack)} HOUR
-    AND tech IN ('GSM', 'EDGE', 'GPRS')`;
+async function getDowngradeMeasurements(bbox, limit = 100, hoursBack = 24, timeFilter = null) {
   const params = { limit };
+  let whereClause = `WHERE ${buildTimeClause(hoursBack, timeFilter, params)}
+    AND tech IN ('GSM', 'EDGE', 'GPRS')`;
 
   if (bbox) {
     whereClause += ` AND location_lat_rounded >= {latMin:Float64}
@@ -977,44 +1240,29 @@ async function getBadMeasurementsWithRawData(daysBack = 7, limit = 500) {
  *  - Specific PCI+EARFCN combos
  * Searches the raw_record string directly using ClickHouse JSON functions.
  */
-async function getBadMeasurementsRFAnomalies(expectedMCCs, bbox, daysBack = 7, limit = 200) {
+async function getBadMeasurementsRFAnomalies(expectedMCCs, bbox, hoursBack = 168, limit = 200, timeFilter = null) {
   // Strategy: use cheap string LIKE pre-filter to narrow rows before expensive JSONExtract.
   // MCC 001 (test network) appears as "mcc":1, or "mcc": 1 in JSON.
-  // We look for test networks (MCC 0 or 1) and unexpected MCCs.
-  //
-  // Phase 1: fast string scan for MCC 001 / MCC 0 (always interesting)
-  // Phase 2: if we have expected MCCs, also find unexpected ones (more targeted)
+  // This is FAST because ClickHouse scans raw strings — no JSON parsing per row.
 
-  const params = { days: daysBack, limit };
+  const params = { limit };
+  const timeClause = buildTimeClause(hoursBack, timeFilter, params);
 
-  // Build a LIKE-based pre-filter for test networks: "mcc":1, or "mcc": 1, or "mcc":0
-  // This is very fast because ClickHouse can scan raw strings without JSON parsing
-  let likeConditions = `(
+  // LIKE-based pre-filter for test networks: "mcc":1 or "mcc":0 in JSON
+  const likeConditions = `(
     raw_record LIKE '%"mcc":1,%' OR raw_record LIKE '%"mcc": 1,%'
     OR raw_record LIKE '%"mcc":1}%' OR raw_record LIKE '%"mcc": 1}%'
     OR raw_record LIKE '%"mcc":0,%' OR raw_record LIKE '%"mcc": 0,%'
     OR raw_record LIKE '%"mcc":0}%' OR raw_record LIKE '%"mcc": 0}%'
   )`;
 
-  // If we have expected MCCs, we also want records that do NOT contain any expected MCC.
-  // For Israel (425): we want anything that is NOT "mcc":425
-  // But doing NOT LIKE for every expected MCC is fragile, so we use a two-pass approach:
-  // First pass: grab all rows using cheap LIKE for known-interesting MCCs
-  // The rule engine will then flag the unexpected ones properly.
-  const expectedNumeric = (expectedMCCs || []).map(m => parseInt(m, 10));
-
-  // For non-expected MCCs, we can't easily do NOT LIKE for all of them,
-  // so we target the most interesting ones: test networks (0,1) + known IMSI-catcher MCCs
-  // The rule engine handles the final MCC validation anyway.
-
   const rs = await queryWithRetry({
     query: `SELECT id, timestamp, sample_id, createdAt, reason, raw_record
             FROM bad_measurements
-            WHERE timestamp > now() - INTERVAL {days:UInt32} DAY
+            WHERE ${timeClause}
               AND raw_record != ''
               AND length(raw_record) > 10
               AND ${likeConditions}
-            ORDER BY timestamp DESC
             LIMIT {limit:UInt32}`,
     query_params: params,
     format: 'JSONEachRow',
@@ -1043,51 +1291,50 @@ async function getAllRecentBadMeasurements(hoursBack = 24, limit = 500) {
 }
 
 /**
- * Fetch bad_measurements within a geographic bounding box using JSONExtract
- * to filter by coordinates server-side. This is the primary function for the
- * scan pipeline — ensures we don't miss region-specific measurements due to
- * global LIMIT exhaustion.
- *
- * Uses GeoJSON path (location.geo.coordinates = [lng, lat]) as primary,
- * with tileId_1 fallback ("lng,lat" string).
+ * Fetch bad_measurements and filter by bbox in Node.js.
+ * ClickHouse query is intentionally minimal (time + non-empty) — no JSONExtract,
+ * no LIKE, no content parsing server-side. ClickHouse Cloud serverless can't
+ * handle expensive per-row JSON operations without timing out.
  */
-async function getBadMeasurementsInBbox(bbox, hoursBack = 168, limit = 1000) {
+async function getBadMeasurementsInBbox(bbox, hoursBack = 168, limit = 1000, timeFilter = null) {
   if (!bbox) return getAllRecentBadMeasurements(hoursBack, limit);
 
-  const margin = 1.0; // 1° margin around bbox
+  // FAST query: just time filter + non-empty raw_record. NO JSONExtract, NO LIKE, NO content
+  // parsing on ClickHouse side. Bbox filtering happens in Node.js after JSON parse.
+  // This is the only approach that reliably works on ClickHouse Cloud serverless.
+  const params = { limit };
+  const timeClause = buildTimeClause(hoursBack, timeFilter, params);
+
+  const rs = await queryWithRetry({
+    query: `SELECT id, timestamp, sample_id, createdAt, reason, raw_record
+            FROM bad_measurements
+            WHERE ${timeClause}
+              AND raw_record != ''
+            LIMIT {limit:UInt32}`,
+    query_params: params,
+    format: 'JSONEachRow',
+  });
+  const rows = await rs.json();
+
+  // Bbox filter in Node.js — parse location from raw_record and check bounds
+  const margin = 1.0;
   const latMin = bbox.latMin - margin;
   const latMax = bbox.latMax + margin;
   const lngMin = bbox.lngMin - margin;
   const lngMax = bbox.lngMax + margin;
 
-  const rs = await queryWithRetry({
-    query: `SELECT id, timestamp, sample_id, createdAt, reason, raw_record
-            FROM bad_measurements
-            WHERE timestamp > now() - INTERVAL {hours:UInt32} HOUR
-              AND raw_record != ''
-              AND length(raw_record) > 10
-              AND (
-                -- Primary: GeoJSON coordinates path [lng, lat]
-                (
-                  JSONExtractFloat(raw_record, 'location', 'geo', 'coordinates', 2) BETWEEN {latMin:Float64} AND {latMax:Float64}
-                  AND JSONExtractFloat(raw_record, 'location', 'geo', 'coordinates', 1) BETWEEN {lngMin:Float64} AND {lngMax:Float64}
-                )
-                OR
-                -- Fallback: tileId_1 string "lng,lat" — parse with splitByChar
-                (
-                  JSONHas(raw_record, 'location', 'tileId_1') = 1
-                  AND toFloat64OrNull(splitByChar(',', JSONExtractString(raw_record, 'location', 'tileId_1'))[2])
-                      BETWEEN {latMin:Float64} AND {latMax:Float64}
-                  AND toFloat64OrNull(splitByChar(',', JSONExtractString(raw_record, 'location', 'tileId_1'))[1])
-                      BETWEEN {lngMin:Float64} AND {lngMax:Float64}
-                )
-              )
-            ORDER BY timestamp DESC
-            LIMIT {limit:UInt32}`,
-    query_params: { hours: hoursBack, limit, latMin, latMax, lngMin, lngMax },
-    format: 'JSONEachRow',
-  });
-  return rs.json();
+  const filtered = [];
+  for (const row of rows) {
+    try {
+      const raw = typeof row.raw_record === 'string' ? JSON.parse(row.raw_record) : row.raw_record;
+      const { lat, lng } = extractLocation(raw);
+      if (lat == null || lng == null) continue;
+      if (lat >= latMin && lat <= latMax && lng >= lngMin && lng <= lngMax) {
+        filtered.push(row);
+      }
+    } catch (_) { /* skip unparseable rows */ }
+  }
+  return filtered;
 }
 
 // ---------------------------------------------------------------------------
@@ -1190,12 +1437,20 @@ function parseBadMeasurementRawRecord(row) {
   const getSig = (key) => signal[key] ?? provider?.signal?.[key] ?? provider?.[key] ?? null;
   const getBand = (key) => band[key] ?? provider?.band?.[key] ?? null;
 
-  // Build PLMN from mcc+mnc if not directly available
-  const mcc = getNet('mcc') ?? raw.mcc;
-  const mnc = getNet('mnc') ?? raw.mnc;
+  // Build PLMN from mcc+mnc, or extract mcc+mnc from PLMN — bidirectional
+  let mcc = getNet('mcc') ?? raw.mcc ?? raw.network_mcc ?? null;
+  let mnc = getNet('mnc') ?? raw.mnc ?? raw.network_mnc ?? null;
   let plmn = getNet('PLMN') || getNet('plmn') || raw.network_PLMN;
   if (!plmn && mcc != null && mnc != null) {
     plmn = `${String(mcc).padStart(3, '0')}-${String(mnc).padStart(2, '0')}`;
+  }
+  // Reverse: extract mcc+mnc from PLMN if they're missing (common in bad_measurements)
+  if (plmn && (mcc == null || mnc == null)) {
+    const parts = String(plmn).split('-');
+    if (parts.length >= 2) {
+      if (mcc == null) mcc = parseInt(parts[0], 10) || null;
+      if (mnc == null) mnc = parseInt(parts[1], 10) || null;
+    }
   }
 
   return {
@@ -1385,6 +1640,9 @@ module.exports = {
   getMeasurementStats24h,
   getRecentMeasurements,
   getRecentMeasurementsFiltered,
+  getAllUniqueMeasurements,
+  getScanMeta,
+  getMeasurementsInTimeWindow,
   getRatDistribution,
   getSiteStats,
   getSitesByTech,
@@ -1393,8 +1651,10 @@ module.exports = {
   getRegionMeasurementStats,
   getMCCAnomalyMeasurements,
   getTestNetworkMeasurements,
+  getMCC001Measurements: getTestNetworkMeasurements,
   getTAZeroMeasurements,
   getDowngradeMeasurements,
+  getTargetedAnomalies,
   getLocationAnomalyMeasurements,
   getBadMeasurementsWithRawData,
   getBadMeasurementsRFAnomalies,
@@ -1413,6 +1673,10 @@ module.exports = {
   getRSUDeviceTimeline,
   getRSUWifiHistory,
   getRSUWifiSummary,
+  getModemMeasurementDevices,
+  getRSUModemMeasurements,
+  getRSUModemMeasurementsTimeline,
+  getScannedSites,
   describeTable,
   close,
 };
@@ -1596,7 +1860,10 @@ async function getRSUDevices(bbox, activeWindowHours = 24) {
               maxIf(signal_rsrp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_rsrp,
               argMaxIf(tech, timestamp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_tech,
               argMaxIf(network_PLMN, timestamp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_plmn,
-              argMaxIf(cell_pci, timestamp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_pci
+              argMaxIf(cell_pci, timestamp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_pci,
+              argMaxIf(deviceInfo_uptime, timestamp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_uptime,
+              argMaxIf(cell_enb, timestamp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_enb,
+              argMaxIf(band_downlinkEarfcn, timestamp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_earfcn
             FROM measurements
             WHERE source = 'modem'${bboxClause}
             GROUP BY deviceInfo_deviceId
@@ -1608,4 +1875,224 @@ async function getRSUDevices(bbox, activeWindowHours = 24) {
     format: 'JSONEachRow',
   });
   return rs.json();
+}
+
+// ---------------------------------------------------------------------------
+// RSU modem_measurements — devices from modem_measurements table
+// These may be different devices than those in `measurements` table.
+// Device identifier: serial_number. Location: coordinates Point (lng, lat).
+// ---------------------------------------------------------------------------
+
+async function getModemMeasurementDevices(bbox, activeWindowHours = 24) {
+  let bboxClause = '';
+  const params = { activeWindowHours: Math.round(activeWindowHours) };
+  if (bbox) {
+    bboxClause = ` AND coordinates.2 >= {latMin:Float64}
+                    AND coordinates.2 <= {latMax:Float64}
+                    AND coordinates.1 >= {lngMin:Float64}
+                    AND coordinates.1 <= {lngMax:Float64}`;
+    params.latMin = bbox.latMin;
+    params.latMax = bbox.latMax;
+    params.lngMin = bbox.lngMin;
+    params.lngMax = bbox.lngMax;
+  }
+
+  const rs = await queryWithRetry({
+    query: `SELECT
+              serial_number AS device_id,
+              argMax(coordinates.2, timestamp) AS lat,
+              argMax(coordinates.1, timestamp) AS lng,
+              argMax(device_name, timestamp) AS device_model,
+              max(timestamp) AS last_seen,
+              min(timestamp) AS first_seen,
+              count() AS total_samples,
+              countIf(timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS active_samples,
+              argMaxIf(signal, timestamp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_rsrp,
+              argMaxIf(rat, timestamp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_tech,
+              argMaxIf(concat(mcc, '-', mnc), timestamp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_plmn,
+              argMaxIf(pcid, timestamp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_pci,
+              argMaxIf(uptime, timestamp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_uptime,
+              argMaxIf(enodeb_id, timestamp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_enb,
+              argMaxIf(frequency, timestamp, timestamp > now() - INTERVAL {activeWindowHours:UInt32} HOUR) AS latest_earfcn
+            FROM modem_measurements
+            WHERE 1=1${bboxClause}
+            GROUP BY serial_number
+            HAVING device_id != ''
+              AND lat != 0 AND lng != 0
+            ORDER BY last_seen DESC
+            LIMIT 500`,
+    query_params: params,
+    format: 'JSONEachRow',
+  });
+  const rows = await rs.json();
+  // Tag each device so the frontend knows the data source
+  return rows.map(r => ({ ...r, _source: 'modem_measurements' }));
+}
+
+const MODEM_MEAS_COLUMNS = `
+  timestamp, sample_id, serial_number,
+  cellid, pcid, enodeb_id, tac, lac, mcc, mnc,
+  rat, band, frequency, bandwidth, duplex,
+  signal, quality, sinr, rssi, cqi, ri, tx_power, srxlev,
+  ue_state, rrc_state, connection, data_modem,
+  cell_timestamp, version, source,
+  coordinates.1 AS lng, coordinates.2 AS lat,
+  altitude, loc_speed, heading,
+  fix_type, fix_quality, hdop, pdop, vdop, satellites_used,
+  horizontal_accuracy, vertical_accuracy, position_accuracy,
+  signal_prx, signal_drx, signal_rx2, signal_rx3,
+  quality_prx, quality_drx, quality_rx2, quality_rx3,
+  sinr_prx, sinr_drx, sinr_rx2, sinr_rx3,
+  ca_index, neighbor_type, scs, is_nsa,
+  device_name, device_version, mac_address, modem_version, uptime,
+  average_rtt, jitter, packet_loss, download_mbps, upload_mbps
+`;
+
+async function getRSUModemMeasurements(serialNumber, limit = 100, startTs = null, endTs = null) {
+  let whereClause = `WHERE serial_number = {sn:String}`;
+  const params = { sn: serialNumber, limit };
+  if (startTs) {
+    whereClause += ` AND timestamp >= toDateTime64({startTs:String}, 3, 'UTC')`;
+    params.startTs = startTs.replace('Z', '').replace('T', ' ');
+  }
+  if (endTs) {
+    whereClause += ` AND timestamp <= toDateTime64({endTs:String}, 3, 'UTC')`;
+    params.endTs = endTs.replace('Z', '').replace('T', ' ');
+  }
+  const rs = await queryWithRetry({
+    query: `SELECT ${MODEM_MEAS_COLUMNS}
+            FROM modem_measurements
+            ${whereClause}
+            ORDER BY timestamp DESC
+            LIMIT {limit:UInt32}`,
+    query_params: params,
+    format: 'JSONEachRow',
+  });
+  return rs.json();
+}
+
+// ---------------------------------------------------------------------------
+// RSU modem_measurements timeline — bucketed aggregates from modem_measurements
+// ---------------------------------------------------------------------------
+async function getRSUModemMeasurementsTimeline(serialNumber, bucketMinutes = 5, startTs = null, endTs = null, hoursBack = 24) {
+  let whereClause = `WHERE serial_number = {sn:String}`;
+  const params = { sn: serialNumber, bucket: Math.round(bucketMinutes) };
+  if (startTs && endTs) {
+    whereClause += ` AND timestamp >= toDateTime64({startTs:String}, 3, 'UTC') AND timestamp <= toDateTime64({endTs:String}, 3, 'UTC')`;
+    params.startTs = startTs.replace('Z', '').replace('T', ' ');
+    params.endTs = endTs.replace('Z', '').replace('T', ' ');
+  } else {
+    whereClause += ` AND timestamp > now() - INTERVAL ${Math.round(hoursBack)} HOUR`;
+  }
+  const rs = await queryWithRetry({
+    query: `SELECT
+              toStartOfInterval(timestamp, INTERVAL {bucket:UInt32} MINUTE) AS ts,
+              count() AS samples,
+              -- Signal
+              avg(signal) AS avg_signal, min(signal) AS min_signal, max(signal) AS max_signal,
+              avg(quality) AS avg_quality, avg(sinr) AS avg_sinr, avg(rssi) AS avg_rssi,
+              avg(cqi) AS avg_cqi, avg(ri) AS avg_ri, avg(srxlev) AS avg_srxlev,
+              avg(tx_power) AS avg_tx_power,
+              -- Cell
+              argMax(pcid, timestamp) AS pcid,
+              argMax(enodeb_id, timestamp) AS enodeb_id,
+              argMax(cellid, timestamp) AS cellid,
+              argMax(rat, timestamp) AS rat,
+              argMax(band, timestamp) AS band,
+              argMax(frequency, timestamp) AS frequency,
+              argMax(bandwidth, timestamp) AS bandwidth,
+              argMax(duplex, timestamp) AS duplex,
+              argMax(mcc, timestamp) AS mcc,
+              argMax(mnc, timestamp) AS mnc,
+              argMax(tac, timestamp) AS tac,
+              argMax(lac, timestamp) AS lac,
+              -- State
+              argMax(ue_state, timestamp) AS ue_state,
+              argMax(rrc_state, timestamp) AS rrc_state,
+              argMax(connection, timestamp) AS connection,
+              argMax(data_modem, timestamp) AS data_modem,
+              -- QoE
+              avg(average_rtt) AS avg_rtt,
+              avg(jitter) AS avg_jitter,
+              avg(packet_loss) AS avg_packet_loss,
+              avg(download_mbps) AS avg_download,
+              avg(upload_mbps) AS avg_upload
+            FROM modem_measurements
+            ${whereClause}
+            GROUP BY ts
+            ORDER BY ts ASC`,
+    query_params: params,
+    format: 'JSONEachRow',
+  });
+  return rs.json();
+}
+
+// ---------------------------------------------------------------------------
+// Scanned Sites — distinct cells seen in measurements (last year), enriched with known sites DB
+// Returns only cells the RSU has actually connected to, with site metadata.
+// ---------------------------------------------------------------------------
+async function getScannedSites(bbox) {
+  let bboxClause = '';
+  const params = {};
+  if (bbox) {
+    bboxClause = ` AND location_lat_rounded >= {latMin:Float64}
+                    AND location_lat_rounded <= {latMax:Float64}
+                    AND location_lng_rounded >= {lngMin:Float64}
+                    AND location_lng_rounded <= {lngMax:Float64}`;
+    params.latMin = bbox.latMin;
+    params.latMax = bbox.latMax;
+    params.lngMin = bbox.lngMin;
+    params.lngMax = bbox.lngMax;
+  }
+
+  const rs2 = await queryWithRetry({
+    query: `SELECT
+              cell_enb AS enb,
+              cell_pci AS pci,
+              argMax(band_downlinkEarfcn, timestamp) AS earfcn,
+              argMax(band_downlinkFrequency, timestamp) AS freq,
+              argMax(band_number, timestamp) AS band_number,
+              argMax(band_name, timestamp) AS band_name,
+              argMax(band_bandwidth, timestamp) AS bandwidth,
+              argMax(network_PLMN, timestamp) AS plmn,
+              argMax(network_mcc, timestamp) AS mcc,
+              argMax(network_mnc, timestamp) AS mnc,
+              argMax(network_operator, timestamp) AS operator,
+              argMax(tech, timestamp) AS tech,
+              argMax(location_lat_rounded, timestamp) AS lat,
+              argMax(location_lng_rounded, timestamp) AS lng,
+              count() AS sample_count,
+              max(timestamp) AS last_seen
+            FROM measurements
+            WHERE source = 'modem'
+              AND timestamp > now() - INTERVAL 365 DAY
+              AND cell_enb IS NOT NULL AND cell_enb != 0
+              ${bboxClause}
+            GROUP BY cell_enb, cell_pci
+            ORDER BY last_seen DESC
+            LIMIT 5000`,
+    query_params: params,
+    format: 'JSONEachRow',
+  });
+  const scannedCells = await rs2.json();
+
+  // Cross-reference with sites cache
+  const allSites = await getKnownCells(null);
+  const siteIndex = {};
+  for (const s of allSites) {
+    if (!s.site_id) continue;
+    siteIndex[String(s.site_id)] = s;
+  }
+
+  return scannedCells.map(cell => {
+    const known = siteIndex[String(cell.enb)];
+    return {
+      ...cell,
+      is_known: !!known,
+      site_lat: known ? known.lat : null,
+      site_lng: known ? known.lng : null,
+      site_tech: known ? known.tech : null,
+      site_height: known ? known.height : null,
+    };
+  });
 }

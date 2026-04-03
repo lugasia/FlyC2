@@ -1265,6 +1265,12 @@ app.get('/api/rsu/device/:deviceId/modem', validateDeviceAccess, safeRoute(async
   res.json({ ok: true, data });
 }));
 
+app.get('/api/rsu/device/:deviceId/modem/qoe', validateDeviceAccess, safeRoute(async (req, res) => {
+  const deviceId = req.params.deviceId;
+  const data = await db.getLatestModemQoE(deviceId);
+  res.json({ ok: true, data });
+}));
+
 app.get('/api/rsu/device/:deviceId/modem/timeline', validateDeviceAccess, safeRoute(async (req, res) => {
   const deviceId = req.params.deviceId;
   const bucket = parseInt(req.query.bucket, 10) || 5;
@@ -1395,7 +1401,31 @@ app.get('/api/site-samples/stats', safeRoute(async (req, res) => {
 // API: Region config + MCC analysis
 // ---------------------------------------------------------------------------
 app.get('/api/regions', safeRoute(async (req, res) => {
-  res.json({ ok: true, data: config.regions, current: config.agent.region });
+  // Auto-detect region from org's cluster center
+  let current = 'GLOBAL';
+  if (req.auth && req.auth.orgId) {
+    const org = orgStore.getOrg(req.auth.orgId);
+    if (org && org.cluster && org.cluster.coordinates && org.cluster.coordinates[0]) {
+      const coords = org.cluster.coordinates[0];
+      let latSum = 0, lngSum = 0;
+      for (const [lng, lat] of coords) { latSum += lat; lngSum += lng; }
+      const centerLat = latSum / coords.length;
+      const centerLng = lngSum / coords.length;
+      for (const [code, r] of Object.entries(config.regions)) {
+        if (code === 'GLOBAL' || !r.bbox) continue;
+        if (centerLat >= r.bbox.latMin && centerLat <= r.bbox.latMax &&
+            centerLng >= r.bbox.lngMin && centerLng <= r.bbox.lngMax) {
+          current = code;
+          break;
+        }
+      }
+    }
+  }
+  // Fallback to env var if no org cluster
+  if (current === 'GLOBAL' && config.agent.region !== 'GLOBAL') {
+    current = config.agent.region;
+  }
+  res.json({ ok: true, data: config.regions, current: current });
 }));
 
 app.get('/api/mcc/distribution', safeRoute(async (req, res) => {

@@ -1586,17 +1586,26 @@
   </div>
 </div>
 
+<script>window.__FLYC2_API_BASE = "%%FLYC2_API_BASE%%";</script>
 <script>
 // ---------------------------------------------------------------------------
-// API_BASE — set via ?api= query param or default to same-origin (local dev)
-// For Vercel: load dashboard with ?api=https://your-laptop:3000
+// API_BASE — set via Vercel env var, ?api= query param, or localStorage
 // ---------------------------------------------------------------------------
 var API_BASE = (function() {
+  // Priority: ?api= query param > localStorage > injected env var > same-origin
   var params = new URLSearchParams(window.location.search);
-  var base = params.get('api') || localStorage.getItem('flyc2_api_base') || '';
+  var fromUrl = params.get('api');
+  var envBase = (window.__FLYC2_API_BASE && window.__FLYC2_API_BASE.indexOf('%%') === -1) ? window.__FLYC2_API_BASE : '';
+  var base = fromUrl || localStorage.getItem('flyc2_api_base') || envBase;
   if (base) {
-    base = base.replace(/\/+$/, ''); // strip trailing slash
+    base = base.replace(/\/+$/, '');
     localStorage.setItem('flyc2_api_base', base);
+  }
+  // Clean ?api= from URL bar
+  if (fromUrl) {
+    params.delete('api');
+    var clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.history.replaceState({}, '', clean);
   }
   return base;
 })();
@@ -6006,19 +6015,37 @@ async function loadRSUModemData() {
     }
     renderModemTab(json.data[0]);
 
-    // Also update Cellular QoE tab with modem QoE data (if measurements table had none)
-    var modemLatest = json.data[0];
-    var hasModemQoe = modemLatest.average_rtt != null || modemLatest.jitter != null ||
-                      modemLatest.packet_loss != null || modemLatest.download_mbps != null ||
-                      modemLatest.upload_mbps != null;
-    if (hasModemQoe) {
-      var qoeEl = document.getElementById('rsuPanelQoe');
-      var tpEl = document.getElementById('rsuPanelThroughput');
-      // Only overwrite if currently showing "No QoE data"
-      if (qoeEl && qoeEl.textContent.indexOf('No QoE') >= 0) {
-        renderQoETab(modemLatest);
+    // Fetch latest QoE record via dedicated endpoint (QoE is sparse — ~1 in 3000 rows)
+    try {
+      var qoeRes = await authFetch(API_BASE + '/api/rsu/device/' + encodeURIComponent(selectedRSUDeviceId) + '/modem/qoe');
+      var qoeJson = await qoeRes.json();
+      var qoeRecord = qoeJson.ok ? qoeJson.data : null;
+
+      if (qoeRecord) {
+        var rtt = qoeRecord.average_rtt != null ? Number(qoeRecord.average_rtt) : null;
+        var modemJitter = qoeRecord.jitter != null ? Number(qoeRecord.jitter) : null;
+        var pktLoss = qoeRecord.packet_loss != null ? Number(qoeRecord.packet_loss) : null;
+        var dlMbps = qoeRecord.download_mbps != null ? Number(qoeRecord.download_mbps) : null;
+        var ulMbps = qoeRecord.upload_mbps != null ? Number(qoeRecord.upload_mbps) : null;
+
+        document.getElementById('rsuPanelModemQoe').innerHTML =
+          renderSignalBar('RTT (Ping)', rtt, 'ms', 200, 0, [30, 80, 150]) +
+          renderSignalBar('Jitter', modemJitter, 'ms', 50, 0, [5, 15, 30]) +
+          (pktLoss != null ? infoRow('Packet Loss', pktLoss.toFixed(2) + '%') : '') +
+          '<div style="font-size:9px;color:var(--text-dim);margin-top:4px;">QoE from ' + fmtDateTime(qoeRecord.timestamp) + '</div>';
+
+        document.getElementById('rsuPanelModemThroughput').innerHTML = (dlMbps != null || ulMbps != null) ? (
+          infoRow('Download', dlMbps != null ? dlMbps.toFixed(1) + ' Mbps' : null) +
+          infoRow('Upload', ulMbps != null ? ulMbps.toFixed(1) + ' Mbps' : null)
+        ) : '<div style="color:var(--text-dim);font-size:10px;">No throughput data</div>';
+
+        // Also update Cellular QoE tab
+        var qoeEl = document.getElementById('rsuPanelQoe');
+        if (qoeEl && qoeEl.textContent.indexOf('No QoE') >= 0) {
+          renderQoETab(qoeRecord);
+        }
       }
-    }
+    } catch (qoeErr) { console.warn('[RSU QoE] Load error:', qoeErr.message); }
 
     // Accumulate bands from ALL modem measurements
     var deviceId = selectedRSUDeviceId;
@@ -6448,9 +6475,9 @@ function adminEnter() {
 
 function adminExitToSOC() {
   adminMode = false;
-  // Restore SOC sidebar
+  // Restore SOC sidebar sections, hide admin nav
   document.querySelectorAll('#sidebar > .sidebar-section').forEach(function(s) { s.style.display = s.dataset.wasVisible || ''; });
-  document.getElementById('adminNavSection').style.display = '';
+  document.getElementById('adminNavSection').style.display = 'none';
   // Show admin button in SOC header
   var adminBtn = document.getElementById('adminPanelBtn');
   if (adminBtn) adminBtn.style.display = '';

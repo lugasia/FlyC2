@@ -1643,6 +1643,7 @@ module.exports = {
   getAllUniqueMeasurements,
   getScanMeta,
   getMeasurementsInTimeWindow,
+  getLatestModemQoE,
   getRatDistribution,
   getSiteStats,
   getSitesByTech,
@@ -1974,6 +1975,25 @@ async function getRSUModemMeasurements(serialNumber, limit = 100, startTs = null
 // ---------------------------------------------------------------------------
 // RSU modem_measurements timeline — bucketed aggregates from modem_measurements
 // ---------------------------------------------------------------------------
+/**
+ * Get the latest modem_measurements record that has QoE data (non-null rtt/jitter/dl/ul).
+ * QoE rows are sparse (~1 in 3000), so we filter directly in the query.
+ */
+async function getLatestModemQoE(serialNumber) {
+  const rs = await queryWithRetry({
+    query: `SELECT ${MODEM_MEAS_COLUMNS}
+            FROM modem_measurements
+            WHERE serial_number = {sn:String}
+              AND (average_rtt IS NOT NULL OR download_mbps IS NOT NULL)
+            ORDER BY timestamp DESC
+            LIMIT 1`,
+    query_params: { sn: serialNumber },
+    format: 'JSONEachRow',
+  });
+  const rows = await rs.json();
+  return rows.length > 0 ? rows[0] : null;
+}
+
 async function getRSUModemMeasurementsTimeline(serialNumber, bucketMinutes = 5, startTs = null, endTs = null, hoursBack = 24) {
   let whereClause = `WHERE serial_number = {sn:String}`;
   const params = { sn: serialNumber, bucket: Math.round(bucketMinutes) };

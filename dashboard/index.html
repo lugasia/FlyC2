@@ -2703,17 +2703,18 @@ function updateStatCardsFromScan(measurements) {
     ratMap[tech] = (ratMap[tech] || 0) + 1;
   }
 
-  // Card 1: Scan Status (scanned count + anomaly %)
+  // Card 1: Scan Status — use stable counters, not capped accumulator size
+  var stableAnomCount = getAccumulatedCounts().total;
   var trendArrow = '';
   if (prevAnomalyCount !== null) {
-    if (anomCount > prevAnomalyCount) trendArrow = ' <span style="color:var(--critical);">&#9650;</span>';
-    else if (anomCount < prevAnomalyCount) trendArrow = ' <span style="color:var(--green);">&#9660;</span>';
+    if (stableAnomCount > prevAnomalyCount) trendArrow = ' <span style="color:var(--critical);">&#9650;</span>';
+    else if (stableAnomCount < prevAnomalyCount) trendArrow = ' <span style="color:var(--green);">&#9660;</span>';
   }
-  prevAnomalyCount = anomCount;
+  prevAnomalyCount = stableAnomCount;
   var el = document.getElementById('statScanned');
-  if (el) el.innerHTML = fmtNum(total) + trendArrow;
+  if (el) el.innerHTML = fmtNum(totalScannedAll) + trendArrow;
   var sub = document.getElementById('statScannedSub');
-  if (sub) sub.textContent = anomCount + ' anomalies (' + (total > 0 ? (anomCount / total * 100).toFixed(1) : '0') + '%)';
+  if (sub) sub.textContent = stableAnomCount + ' anomalies (' + (totalScannedAll > 0 ? (stableAnomCount / totalScannedAll * 100).toFixed(1) : '0') + '%)';
 
   // Card 2: Threat Level (CLEAR / ELEVATED / HIGH / CRITICAL)
   var counts = getAccumulatedCounts();
@@ -3662,7 +3663,8 @@ async function loadLiveScanSingle() {
       accumulatedAggregated[aggKey] = agg;
     }
 
-    updateStatCardsFromScan(newMeas);
+    var allAccum = Object.values(accumulatedAnomalies).concat(Object.values(accumulatedClean));
+    updateStatCardsFromScan(allAccum);
     updateActiveDevicesKPI(scanActiveDevices.size);
     updateFilterButtons();
     var filteredAnomalies = getFilteredAnomalyList();

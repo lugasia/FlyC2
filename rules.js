@@ -845,29 +845,26 @@ async function runRules(measurements, knownCells, expectedMCCs = [], regionBbox 
     }
 
     // =====================================================================
-    // RULE 4c: TAC CHANGE ANOMALY — unexpected TAC for known cell
-    // If a cell advertises a TAC that doesn't match the known TAC for its
-    // eNB/region, it could be a rogue base station forcing tracking area
-    // updates to expose the device's IMSI.
+    // RULE: TAC/LAC JUMP — Part A: Reserved/Invalid TAC Values
+    // Per 3GPP: TAC 0, 1, 65534, 65535 are reserved in LTE.
+    // TAC 16777215 is reserved in 5G NR SA.
+    // These are never used in live commercial networks.
     // =====================================================================
-    if (isRuleEnabled('TAC_ANOMALY') && mccMatchesRegion && enbId && m.cell_tac) {
+    if (isRuleEnabled('TAC_LAC_JUMP') && m.cell_tac != null) {
       const tac = Number(m.cell_tac);
-      const knownSiteForTac = lookupSite(enbId, mPlmn, mLat, mLng);
-      if (knownSiteForTac && knownSiteForTac.inRegion) {
-        // If the sites table has TAC info, compare. Otherwise skip.
-        // For now: flag TAC=0 or TAC=1 which are test/invalid values
-        if (tac === 0 || tac === 1) {
-          flags.push({
-            sample_id: m.sample_id, rule: 'TAC_ANOMALY', severity: HIGH, score: 0.80,
-            details: `TAC=${tac} on eNB ${enbId} (PCI ${pci}) — test/invalid TAC value, possible rogue base station`,
-            ...baseFlag,
-          });
-        }
-      } else if (!knownSiteForTac && tac !== null && (tac === 0 || tac === 1)) {
-        // Unknown eNB with test TAC
+      const INVALID_TACS = [0, 1, 65534, 65535, 16777215];
+
+      if (INVALID_TACS.includes(tac)) {
+        const isUnknownEnb = !lookupSite(enbId, mPlmn, mLat, mLng);
+        const sev = isUnknownEnb ? CRITICAL : HIGH;
+
         flags.push({
-          sample_id: m.sample_id, rule: 'TAC_ANOMALY', severity: CRITICAL, score: 0.90,
-          details: `Unknown eNB ${enbId} with TAC=${tac} — test TAC + unknown cell = likely rogue`,
+          sample_id: m.sample_id,
+          rule: 'TAC_LAC_JUMP',
+          severity: sev,
+          score: sev === CRITICAL ? 0.92 : 0.82,
+          details: `Reserved TAC=${tac} on eNB ${enbId || '?'} (PCI ${pci})` +
+            (isUnknownEnb ? ' — unknown cell + reserved TAC = likely rogue' : ' — reserved TAC value, possible spoofed station'),
           ...baseFlag,
         });
       }
@@ -1087,141 +1084,111 @@ async function runRules(measurements, knownCells, expectedMCCs = [], regionBbox 
   }
 
   // =====================================================================
-  // RULE 7: TAC/LAC JUMP DETECTION
-  // Detects when a device's Tracking Area Code (4G/5G) or Location Area
-  // Code (2G/3G) changes suspiciously — indicative of IMSI catcher pull.
+  // RULE: TAC/LAC JUMP — Part B: Per-eNB TAC Consistency
   //
-  // Three layers:
-  //   1. Invalid TAC/LAC values (reserved per 3GPP)
-  //   2. Per-device TAC jump frequency in sliding window
-  //   3. Geographic + signal strength cross-validation
+  // A legitimate eNB broadcasts a FIXED TAC. If the same eNB (identified
+  // by cell_enb) is observed with multiple different TAC values across
+  // ANY measurements (from any device), it indicates:
+  //   - IMSI catcher spoofing the eNB identity with wrong TAC
+  //   - Cell-in-the-middle rewriting TAC to force tracking area updates
+  //   - Operator misconfiguration (rare, lower severity)
   //
-  // Reference: 3GPP TS 24.301 (TAC in Tracking Area Update),
-  //            3GPP TS 24.008 (LAC in Location Area Update)
+  // Groups all measurements by eNB, counts unique TAC values per eNB.
+  // Flags if unique TAC count >= minTacChanges threshold (default: 2).
+  //
+  // Works across 2G (LAC), 3G (LAC), 4G (TAC), 5G (TAC) — the field
+  // cell_tac holds LAC for 2G/3G and TAC for 4G/5G.
   // =====================================================================
   if (isRuleEnabled('TAC_LAC_JUMP')) {
     const MIN_TAC_CHANGES = getThreshold('TAC_LAC_JUMP', 'minTacChanges', 2);
-    const JUMP_WINDOW_MS = getThreshold('TAC_LAC_JUMP', 'windowMinutes', 10) * 60 * 1000;
-    const STATIONARY_THRESHOLD_KM = 2.0;
 
-    // Reserved/invalid TAC/LAC values per 3GPP
-    const INVALID_TAC_VALUES = new Set([0, 1, 65534, 65535]);
-    const INVALID_TAC_5G_NR = 16777215; // 24-bit max, often reserved as null
-
-    // --- Layer 2 + 3: Per-device TAC timeline analysis ---
-    const deviceTacTimelines = {};
+    // Build per-eNB TAC map: eNB → { tacs: Map<tac, [measurements]> }
+    const enbTacMap = {};
 
     for (const m of measurements) {
-      const did = m.deviceInfo_deviceId;
-      if (!did) continue;
-      const ts = m.timestamp ? new Date(m.timestamp).getTime() : 0;
-      if (!ts) continue;
-
+      const enb = m.cell_enb;
+      if (!enb) continue;
       const tac = m.cell_tac != null ? Number(m.cell_tac) : null;
       if (tac == null) continue;
 
-      const tech = String(m.tech || '').toUpperCase();
-      const lat = m.location_lat_rounded ? Number(m.location_lat_rounded) : null;
-      const lng = m.location_lng_rounded ? Number(m.location_lng_rounded) : null;
-      const rsrp = m.signal_rsrp != null ? Number(m.signal_rsrp) : null;
+      const key = String(enb);
+      if (!enbTacMap[key]) enbTacMap[key] = { tacs: new Map() };
 
-      if (!deviceTacTimelines[did]) deviceTacTimelines[did] = [];
-      deviceTacTimelines[did].push({
-        ts, tac, pci: m.cell_pci, enb: m.cell_enb,
-        lat, lng, rsrp, tech,
-        sample_id: m.sample_id,
-        plmn: m.network_PLMN || '',
-      });
+      if (!enbTacMap[key].tacs.has(tac)) enbTacMap[key].tacs.set(tac, []);
+      enbTacMap[key].tacs.get(tac).push(m);
     }
 
-    for (const [did, timeline] of Object.entries(deviceTacTimelines)) {
-      if (timeline.length < 2) continue;
-      timeline.sort((a, b) => a.ts - b.ts);
+    // Check each eNB for TAC inconsistency
+    for (const [enbKey, data] of Object.entries(enbTacMap)) {
+      const uniqueTacCount = data.tacs.size;
+      if (uniqueTacCount < MIN_TAC_CHANGES) continue;
 
-      // Sliding window: count TAC changes
-      for (let i = 0; i < timeline.length; i++) {
-        let tacChanges = 0;
-        let prevTac = timeline[i].tac;
-        const tacsSeen = new Set([prevTac]);
-        let windowEnd = i;
-        let hasInvalidTac = INVALID_TAC_VALUES.has(prevTac) || prevTac === INVALID_TAC_5G_NR;
-        let maxRsrp = timeline[i].rsrp;
-        let has2G = ['GSM', 'EDGE', 'GPRS'].includes(timeline[i].tech);
+      // This eNB has been seen with multiple TACs — suspicious
+      const tacEntries = Array.from(data.tacs.entries());
+      tacEntries.sort((a, b) => b[1].length - a[1].length); // Sort by count descending
 
-        for (let j = i + 1; j < timeline.length; j++) {
-          if (timeline[j].ts - timeline[i].ts > JUMP_WINDOW_MS) break;
-          windowEnd = j;
+      // The most common TAC is likely the legitimate one
+      const dominantTac = tacEntries[0][0];
+      const dominantCount = tacEntries[0][1].length;
 
-          if (timeline[j].tac !== prevTac) {
-            tacChanges++;
-            prevTac = timeline[j].tac;
-            tacsSeen.add(prevTac);
+      // Flag every measurement with a non-dominant TAC
+      for (let t = 1; t < tacEntries.length; t++) {
+        const anomalousTac = tacEntries[t][0];
+        const anomalousMeasurements = tacEntries[t][1];
+
+        const INVALID_TACS = new Set([0, 1, 65534, 65535, 16777215]);
+        const hasInvalidTac = INVALID_TACS.has(anomalousTac);
+
+        for (const m of anomalousMeasurements) {
+          // Skip if already flagged by Part A (reserved TAC detection)
+          const alreadyFlagged = flags.some(f =>
+            f.sample_id === m.sample_id && f.rule === 'TAC_LAC_JUMP'
+          );
+          if (alreadyFlagged) continue;
+
+          const rsrp = m.signal_rsrp != null ? Number(m.signal_rsrp) : null;
+          const strongSignal = rsrp != null && rsrp > -70;
+
+          const mLat = m.location_lat_rounded ? Number(m.location_lat_rounded) : null;
+          const mLng = m.location_lng_rounded ? Number(m.location_lng_rounded) : null;
+          const mPlmn = m.network_PLMN || '';
+          const knownSite = lookupSite(Number(enbKey), mPlmn, mLat, mLng);
+          const isUnknownSite = !knownSite;
+
+          // Severity escalation
+          let sev = HIGH;
+          const escalations = [];
+
+          if (hasInvalidTac) {
+            sev = CRITICAL;
+            escalations.push('reserved TAC=' + anomalousTac);
+          }
+          if (strongSignal) {
+            sev = CRITICAL;
+            escalations.push('strong signal ' + rsrp + ' dBm');
+          }
+          if (isUnknownSite) {
+            sev = CRITICAL;
+            escalations.push('unknown cell');
           }
 
-          if (INVALID_TAC_VALUES.has(timeline[j].tac) || timeline[j].tac === INVALID_TAC_5G_NR) {
-            hasInvalidTac = true;
-          }
-          if (timeline[j].rsrp != null && (maxRsrp == null || timeline[j].rsrp > maxRsrp)) {
-            maxRsrp = timeline[j].rsrp;
-          }
-          if (['GSM', 'EDGE', 'GPRS'].includes(timeline[j].tech)) has2G = true;
+          const pci = m.cell_pci != null ? m.cell_pci : '?';
+          const tech = String(m.tech || 'LTE').toUpperCase();
+          const idType = ['GSM', 'EDGE', 'GPRS', 'WCDMA', 'HSPA', 'UMTS'].includes(tech) ? 'LAC' : 'TAC';
+          const escStr = escalations.length > 0 ? ' — ' + escalations.join(', ') : '';
+
+          flags.push({
+            sample_id: m.sample_id,
+            rule: 'TAC_LAC_JUMP',
+            severity: sev,
+            score: sev === CRITICAL ? 0.92 : 0.78,
+            details: `eNB ${enbKey} (PCI ${pci}) seen with ${uniqueTacCount} different ${idType}s: ` +
+              `expected ${idType}=${dominantTac} (${dominantCount} samples) but got ${idType}=${anomalousTac}${escStr}`,
+            cell_id: String(pci),
+            location_lat: mLat,
+            location_lng: mLng,
+          });
         }
-
-        if (tacChanges < MIN_TAC_CHANGES) continue;
-
-        // --- Layer 3: Geographic validation ---
-        const startLat = timeline[i].lat;
-        const startLng = timeline[i].lng;
-        const endLat = timeline[windowEnd].lat;
-        const endLng = timeline[windowEnd].lng;
-        let deviceMovedKm = null;
-        let isStationary = false;
-        if (startLat && startLng && endLat && endLng) {
-          deviceMovedKm = haversineKm(startLat, startLng, endLat, endLng);
-          isStationary = deviceMovedKm < STATIONARY_THRESHOLD_KM;
-        }
-
-        // --- Layer 3: Signal strength anomaly ---
-        const strongSignal = maxRsrp != null && maxRsrp > -70;
-
-        // Severity determination
-        let sev = HIGH;
-        const escalations = [];
-
-        if (isStationary) {
-          sev = CRITICAL;
-          escalations.push('device stationary');
-        }
-        if (strongSignal) {
-          sev = CRITICAL;
-          escalations.push('strong signal (' + maxRsrp + ' dBm)');
-        }
-        if (hasInvalidTac) {
-          sev = CRITICAL;
-          escalations.push('reserved/invalid TAC');
-        }
-        if (has2G) {
-          sev = CRITICAL;
-          escalations.push('includes 2G downgrade');
-        }
-
-        const windowSec = ((timeline[windowEnd].ts - timeline[i].ts) / 1000).toFixed(0);
-        const tacsStr = Array.from(tacsSeen).join(' → ');
-        const moveStr = deviceMovedKm != null ? ', moved ' + deviceMovedKm.toFixed(1) + 'km' : '';
-        const escStr = escalations.length > 0 ? ' — ' + escalations.join(', ') : '';
-
-        flags.push({
-          sample_id: timeline[i].sample_id,
-          rule: 'TAC_LAC_JUMP',
-          severity: sev,
-          score: sev === CRITICAL ? 0.92 : 0.78,
-          details: `Device ${did.substring(0, 12)}... TAC jumped ${tacChanges} times in ${windowSec}s: [${tacsStr}]${moveStr}${escStr}`,
-          cell_id: String(timeline[i].pci || ''),
-          location_lat: timeline[i].lat,
-          location_lng: timeline[i].lng,
-        });
-
-        break; // One flag per device per scan
       }
     }
   }

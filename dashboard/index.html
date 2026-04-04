@@ -3382,7 +3382,7 @@ var THREAT_COLORS = {
   PCI_COLLISION: '#ef4444', PHANTOM_CELL: '#f97316', UNLICENSED_BAND: '#dc2626',
   JAMMING_INDICATOR: '#f43f5e', CELL_LOCATION_MISMATCH: '#f59e0b', GPS_SPOOFING: '#eab308',
   TA_ZERO_CLUSTER: '#a855f7', TA_ZERO_CLUSTER_CRITICAL: '#7c3aed', NETWORK_DOWNGRADE: '#ec4899',
-  MCC_ANOMALY: '#06b6d4', TAC_ANOMALY: '#14b8a6', EMPTY_NEIGHBORS: '#6366f1',
+  MCC_ANOMALY: '#06b6d4', EMPTY_NEIGHBORS: '#6366f1',
   TA_RSRP_MISMATCH: '#8b5cf6', EXTREME_RSRP: '#fb923c', RAPID_RESELECTION: '#e11d48',
   TAC_LAC_JUMP: '#d946ef', MULTI_DEVICE_CORROBORATION: '#be123c', BAD_MEASUREMENT: '#6b7280',
 };
@@ -3400,7 +3400,6 @@ var ANOMALY_EXPLAINER = {
   TA_ZERO_CLUSTER_CRITICAL: { title: 'TA Zero (Critical)' },
   NETWORK_DOWNGRADE: { title: 'Network Downgrade' },
   MCC_ANOMALY: { title: 'MCC Anomaly' },
-  TAC_ANOMALY: { title: 'TAC Anomaly' },
   EMPTY_NEIGHBORS: { title: 'Empty Neighbors' },
   TA_RSRP_MISMATCH: { title: 'TA/RSRP Mismatch' },
   EXTREME_RSRP: { title: 'Extreme RSRP' },
@@ -5584,10 +5583,6 @@ function renderThresholdForm() {
       fields += '<div class="threshold-field"><span>Min TAC changes:</span>' +
         '<input type="number" min="1" max="10" value="' + t.minTacChanges + '" data-rule="' + rule + '" data-field="minTacChanges" onchange="updateThreshold(this)" style="width:50px;"></div>';
     }
-    if (t.windowMinutes !== undefined) {
-      fields += '<div class="threshold-field"><span>Window (minutes):</span>' +
-        '<input type="number" min="1" max="60" value="' + t.windowMinutes + '" data-rule="' + rule + '" data-field="windowMinutes" onchange="updateThreshold(this)" style="width:50px;"></div>';
-    }
     fields += '</div>';
     return fields;
   }).join('');
@@ -5599,7 +5594,7 @@ function updateThreshold(el) {
   if (!rule || !field || !ruleThresholds[rule]) return;
   if (field === 'enabled') {
     ruleThresholds[rule].enabled = el.checked;
-  } else if (field === 'minUniqueSamples' || field === 'minDistanceKm' || field === 'minTacChanges' || field === 'windowMinutes') {
+  } else if (field === 'minUniqueSamples' || field === 'minDistanceKm' || field === 'minTacChanges') {
     ruleThresholds[rule][field] = parseFloat(el.value) || 1;
   } else {
     ruleThresholds[rule][field] = el.value;

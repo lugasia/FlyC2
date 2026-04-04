@@ -1539,8 +1539,7 @@ let ruleThresholds = {
   BAD_MEASUREMENT: { enabled: true, minUniqueSamples: 1 },
   PCI_COLLISION: { enabled: true },
   JAMMING_INDICATOR: { enabled: true },
-  TAC_ANOMALY: { enabled: true },
-  TAC_LAC_JUMP: { enabled: true, minTacChanges: 2, windowMinutes: 10 },
+  TAC_LAC_JUMP: { enabled: true, minTacChanges: 2 },
   EMPTY_NEIGHBORS: { enabled: true },
   RAPID_RESELECTION: { enabled: true },
 };

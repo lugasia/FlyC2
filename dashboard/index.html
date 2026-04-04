@@ -4543,7 +4543,7 @@ function renderScanTable() {
     var selected = (selectedScanRow === m.sample_id) ? ' scan-row-selected' : '';
 
     // Show first_seen/last_seen from flags if available, otherwise use measurement timestamp
-    var timeDisplay = fmtTime(m.timestamp);
+    var timeDisplay = fmtDateTime(m.timestamp);
     if (m.flags && m.flags.length > 0 && m.flags[0].first_seen) {
       var fs = m.flags[0].first_seen;
       var ls = m.flags[0].last_seen;

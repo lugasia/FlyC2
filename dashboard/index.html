@@ -2418,7 +2418,12 @@ function accumulateScanResults(measurements) {
       }
       accumulatedAnomalies[m.sample_id] = m;
     } else {
-      accumulatedClean[m.sample_id] = m;
+      // Never downgrade a previously-flagged anomaly to clean —
+      // refresh scans may return the same sample without flags
+      // if the targeted anomaly injection didn't include it
+      if (!accumulatedAnomalies[m.sample_id]) {
+        accumulatedClean[m.sample_id] = m;
+      }
     }
   }
 

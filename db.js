@@ -1249,11 +1249,16 @@ async function getBadMeasurementsRFAnomalies(expectedMCCs, bbox, hoursBack = 168
   const timeClause = buildTimeClause(hoursBack, timeFilter, params);
 
   // LIKE-based pre-filter for test networks: "mcc":1 or "mcc":0 in JSON
+  // Covers both integer (mcc:1) and string (mcc:"001") formats
   const likeConditions = `(
     raw_record LIKE '%"mcc":1,%' OR raw_record LIKE '%"mcc": 1,%'
     OR raw_record LIKE '%"mcc":1}%' OR raw_record LIKE '%"mcc": 1}%'
     OR raw_record LIKE '%"mcc":0,%' OR raw_record LIKE '%"mcc": 0,%'
     OR raw_record LIKE '%"mcc":0}%' OR raw_record LIKE '%"mcc": 0}%'
+    OR raw_record LIKE '%"mcc":"001"%' OR raw_record LIKE '%"mcc": "001"%'
+    OR raw_record LIKE '%"mcc":"000"%' OR raw_record LIKE '%"mcc": "000"%'
+    OR raw_record LIKE '%"mcc":"1"%' OR raw_record LIKE '%"mcc": "1"%'
+    OR raw_record LIKE '%"mcc":"0"%' OR raw_record LIKE '%"mcc": "0"%'
   )`;
 
   const rs = await queryWithRetry({

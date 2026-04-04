@@ -632,7 +632,7 @@ app.get('/api/scan/live', safeRoute(async (req, res) => {
       console.log(`[SCAN] Query 6/6: MCC anomalies in bad_measurements (LIKE, date-range)...`);
       const badMccRaw = await Promise.race([
         db.getBadMeasurementsRFAnomalies(region.expectedMCC, bbox, hours, 500, timeFilter),
-        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout 30s')), 30000)),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout 60s')), 60000)),
       ]);
       for (const row of badMccRaw) {
         const parsed = db.parseBadMeasurementRawRecord(row);

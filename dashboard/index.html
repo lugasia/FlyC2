@@ -3982,9 +3982,37 @@ function renderMccInline(plmnMap) {
   var expectedMCCs = regionsCache[currentRegion] && regionsCache[currentRegion].expectedMCC
     ? regionsCache[currentRegion].expectedMCC : [];
 
-  var plmnEntries = Object.keys(plmnMap).map(function(p) {
-    var deviceCount = plmnMap[p].devices ? plmnMap[p].devices.size : 0;
-    return { plmn: p, count: plmnMap[p].count, operator: plmnMap[p].operator, mcc: plmnMap[p].mcc, deviceCount: deviceCount };
+  // Build PLMN stats from full accumulator (not just current chunk)
+  // so device counts and measurement counts reflect the entire scan
+  var accumPlmnMap = {};
+  var allMeasurements = Object.values(accumulatedAnomalies).concat(Object.values(accumulatedClean));
+  for (var i = 0; i < allMeasurements.length; i++) {
+    var m = allMeasurements[i];
+    var plmn = m.network_PLMN || '';
+    if (!plmn) continue;
+    if (!accumPlmnMap[plmn]) accumPlmnMap[plmn] = { count: 0, operator: m.network_operator || '', mcc: m.network_mcc || '', devices: new Set() };
+    accumPlmnMap[plmn].count++;
+    if (m.deviceInfo_deviceId) accumPlmnMap[plmn].devices.add(m.deviceInfo_deviceId);
+    if (!accumPlmnMap[plmn].operator && m.network_operator) accumPlmnMap[plmn].operator = m.network_operator;
+  }
+
+  // Merge: prefer accumulator data, fall back to chunk plmnMap for PLMNs not yet accumulated
+  var mergedMap = {};
+  var allPlmns = new Set(Object.keys(accumPlmnMap).concat(Object.keys(plmnMap)));
+  allPlmns.forEach(function(p) {
+    var accum = accumPlmnMap[p];
+    var chunk = plmnMap[p];
+    mergedMap[p] = {
+      count: accum ? accum.count : (chunk ? chunk.count : 0),
+      operator: (accum && accum.operator) || (chunk && chunk.operator) || '',
+      mcc: (accum && accum.mcc) || (chunk && chunk.mcc) || '',
+      deviceCount: accum ? accum.devices.size : (chunk && chunk.devices ? chunk.devices.size : 0),
+    };
+  });
+
+  var plmnEntries = Object.keys(mergedMap).map(function(p) {
+    var d = mergedMap[p];
+    return { plmn: p, count: d.count, operator: d.operator, mcc: d.mcc, deviceCount: d.deviceCount };
   }).sort(function(a, b) { return b.count - a.count; });
 
   if (plmnEntries.length === 0) { el.innerHTML = '<span style="color:var(--text-dim);font-size:10px;">No PLMN data</span>'; return; }
@@ -3993,14 +4021,15 @@ function renderMccInline(plmnMap) {
     plmnEntries.map(function(e) {
       var isExpected = expectedMCCs.length === 0 || expectedMCCs.includes(String(e.mcc)) || expectedMCCs.includes(Number(e.mcc));
       if (isExpected) {
-        return '<span style="color:var(--text-dim);">' + e.plmn + ' <span style="font-size:9px;">' + e.count + '</span></span>';
+        return '<span style="color:var(--text-dim);">' + e.plmn + ' <span style="font-size:9px;">' + (e.operator ? e.operator + ' ' : '') + e.count + '</span></span>';
       }
-      // Only flag as UNEXPECTED if seen from more than 1 unique device
+      // Unexpected PLMN — show device count for context
+      var devStr = e.deviceCount > 0 ? ' (' + e.deviceCount + ' device' + (e.deviceCount > 1 ? 's' : '') + ')' : '';
       if (e.deviceCount <= 1) {
-        return '<span style="color:var(--high);opacity:0.7;">' + e.plmn + ' <span style="font-size:9px;">' + e.count + ' (1 device)</span></span>';
+        return '<span style="color:var(--high);opacity:0.7;">' + e.plmn + ' <span style="font-size:9px;">' + e.count + devStr + '</span></span>';
       }
       return '<span style="background:var(--critical-bg);color:var(--critical);padding:1px 6px;border-radius:3px;font-weight:700;">' +
-        e.plmn + ' ' + e.count + ' UNEXPECTED</span>';
+        e.plmn + ' ' + e.count + devStr + '</span>';
     }).join('') + '</div>';
 }
 

@@ -1540,6 +1540,7 @@ let ruleThresholds = {
   PCI_COLLISION: { enabled: true },
   JAMMING_INDICATOR: { enabled: true },
   TAC_ANOMALY: { enabled: true },
+  TAC_LAC_JUMP: { enabled: true, minTacChanges: 2, windowMinutes: 10 },
   EMPTY_NEIGHBORS: { enabled: true },
   RAPID_RESELECTION: { enabled: true },
 };

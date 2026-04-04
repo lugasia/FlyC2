@@ -1086,6 +1086,146 @@ async function runRules(measurements, knownCells, expectedMCCs = [], regionBbox 
     }
   }
 
+  // =====================================================================
+  // RULE 7: TAC/LAC JUMP DETECTION
+  // Detects when a device's Tracking Area Code (4G/5G) or Location Area
+  // Code (2G/3G) changes suspiciously — indicative of IMSI catcher pull.
+  //
+  // Three layers:
+  //   1. Invalid TAC/LAC values (reserved per 3GPP)
+  //   2. Per-device TAC jump frequency in sliding window
+  //   3. Geographic + signal strength cross-validation
+  //
+  // Reference: 3GPP TS 24.301 (TAC in Tracking Area Update),
+  //            3GPP TS 24.008 (LAC in Location Area Update)
+  // =====================================================================
+  if (isRuleEnabled('TAC_LAC_JUMP')) {
+    const MIN_TAC_CHANGES = getThreshold('TAC_LAC_JUMP', 'minTacChanges', 2);
+    const JUMP_WINDOW_MS = getThreshold('TAC_LAC_JUMP', 'windowMinutes', 10) * 60 * 1000;
+    const STATIONARY_THRESHOLD_KM = 2.0;
+
+    // Reserved/invalid TAC/LAC values per 3GPP
+    const INVALID_TAC_VALUES = new Set([0, 1, 65534, 65535]);
+    const INVALID_TAC_5G_NR = 16777215; // 24-bit max, often reserved as null
+
+    // --- Layer 2 + 3: Per-device TAC timeline analysis ---
+    const deviceTacTimelines = {};
+
+    for (const m of measurements) {
+      const did = m.deviceInfo_deviceId;
+      if (!did) continue;
+      const ts = m.timestamp ? new Date(m.timestamp).getTime() : 0;
+      if (!ts) continue;
+
+      const tac = m.cell_tac != null ? Number(m.cell_tac) : null;
+      if (tac == null) continue;
+
+      const tech = String(m.tech || '').toUpperCase();
+      const lat = m.location_lat_rounded ? Number(m.location_lat_rounded) : null;
+      const lng = m.location_lng_rounded ? Number(m.location_lng_rounded) : null;
+      const rsrp = m.signal_rsrp != null ? Number(m.signal_rsrp) : null;
+
+      if (!deviceTacTimelines[did]) deviceTacTimelines[did] = [];
+      deviceTacTimelines[did].push({
+        ts, tac, pci: m.cell_pci, enb: m.cell_enb,
+        lat, lng, rsrp, tech,
+        sample_id: m.sample_id,
+        plmn: m.network_PLMN || '',
+      });
+    }
+
+    for (const [did, timeline] of Object.entries(deviceTacTimelines)) {
+      if (timeline.length < 2) continue;
+      timeline.sort((a, b) => a.ts - b.ts);
+
+      // Sliding window: count TAC changes
+      for (let i = 0; i < timeline.length; i++) {
+        let tacChanges = 0;
+        let prevTac = timeline[i].tac;
+        const tacsSeen = new Set([prevTac]);
+        let windowEnd = i;
+        let hasInvalidTac = INVALID_TAC_VALUES.has(prevTac) || prevTac === INVALID_TAC_5G_NR;
+        let maxRsrp = timeline[i].rsrp;
+        let has2G = ['GSM', 'EDGE', 'GPRS'].includes(timeline[i].tech);
+
+        for (let j = i + 1; j < timeline.length; j++) {
+          if (timeline[j].ts - timeline[i].ts > JUMP_WINDOW_MS) break;
+          windowEnd = j;
+
+          if (timeline[j].tac !== prevTac) {
+            tacChanges++;
+            prevTac = timeline[j].tac;
+            tacsSeen.add(prevTac);
+          }
+
+          if (INVALID_TAC_VALUES.has(timeline[j].tac) || timeline[j].tac === INVALID_TAC_5G_NR) {
+            hasInvalidTac = true;
+          }
+          if (timeline[j].rsrp != null && (maxRsrp == null || timeline[j].rsrp > maxRsrp)) {
+            maxRsrp = timeline[j].rsrp;
+          }
+          if (['GSM', 'EDGE', 'GPRS'].includes(timeline[j].tech)) has2G = true;
+        }
+
+        if (tacChanges < MIN_TAC_CHANGES) continue;
+
+        // --- Layer 3: Geographic validation ---
+        const startLat = timeline[i].lat;
+        const startLng = timeline[i].lng;
+        const endLat = timeline[windowEnd].lat;
+        const endLng = timeline[windowEnd].lng;
+        let deviceMovedKm = null;
+        let isStationary = false;
+        if (startLat && startLng && endLat && endLng) {
+          deviceMovedKm = haversineKm(startLat, startLng, endLat, endLng);
+          isStationary = deviceMovedKm < STATIONARY_THRESHOLD_KM;
+        }
+
+        // --- Layer 3: Signal strength anomaly ---
+        const strongSignal = maxRsrp != null && maxRsrp > -70;
+
+        // Severity determination
+        let sev = HIGH;
+        const escalations = [];
+
+        if (isStationary) {
+          sev = CRITICAL;
+          escalations.push('device stationary');
+        }
+        if (strongSignal) {
+          sev = CRITICAL;
+          escalations.push('strong signal (' + maxRsrp + ' dBm)');
+        }
+        if (hasInvalidTac) {
+          sev = CRITICAL;
+          escalations.push('reserved/invalid TAC');
+        }
+        if (has2G) {
+          sev = CRITICAL;
+          escalations.push('includes 2G downgrade');
+        }
+
+        const windowSec = ((timeline[windowEnd].ts - timeline[i].ts) / 1000).toFixed(0);
+        const tacsStr = Array.from(tacsSeen).join(' → ');
+        const moveStr = deviceMovedKm != null ? ', moved ' + deviceMovedKm.toFixed(1) + 'km' : '';
+        const escStr = escalations.length > 0 ? ' — ' + escalations.join(', ') : '';
+
+        flags.push({
+          sample_id: timeline[i].sample_id,
+          rule: 'TAC_LAC_JUMP',
+          severity: sev,
+          score: sev === CRITICAL ? 0.92 : 0.78,
+          details: `Device ${did.substring(0, 12)}... TAC jumped ${tacChanges} times in ${windowSec}s: [${tacsStr}]${moveStr}${escStr}`,
+          cell_id: String(timeline[i].pci || ''),
+          location_lat: timeline[i].lat,
+          location_lng: timeline[i].lng,
+        });
+
+        break; // One flag per device per scan
+      }
+    }
+  }
+
   // -----------------------------------------------------------------------
   // POST-LOOP: MULTI-DEVICE CORRELATION
   // If 3+ devices flag the same suspicious cell (same eNB or PCI+EARFCN),

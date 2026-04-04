@@ -718,7 +718,7 @@
     height: 100vh;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border);
-    z-index: 9;
+    z-index: 1100;
     transition: left 0.25s ease;
     overflow-y: auto;
     display: flex;
@@ -1271,11 +1271,11 @@
   </div>
 
   <!-- Executive Summary -->
-  <div class="sidebar-section" id="execSummarySection">
-    <div class="exec-sidebar-btn" onclick="toggleExecSummary()">
-      <div class="sidebar-section-title" style="margin-bottom:0;">EXECUTIVE SUMMARY</div>
+  <div class="sidebar-section" id="execSummarySection" style="padding:8px 16px;">
+    <button onclick="toggleExecSummary()" style="width:100%;background:none;border:1px solid var(--cyan);color:var(--cyan);font-size:10px;font-weight:700;padding:6px 12px;border-radius:4px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;letter-spacing:1px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.15s ease;" onmouseover="this.style.background='rgba(0,212,170,0.1)'" onmouseout="this.style.background='none'">
+      EXECUTIVE SUMMARY
       <span id="execSummaryBadge" class="exec-badge" style="display:none;">0</span>
-    </div>
+    </button>
   </div>
 
   <!-- Scan Action -->

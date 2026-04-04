@@ -3991,7 +3991,7 @@ function renderMccInline(plmnMap) {
 
   el.innerHTML = '<div style="font-size:10px;display:flex;flex-wrap:wrap;gap:6px;">' +
     plmnEntries.map(function(e) {
-      var isExpected = expectedMCCs.length === 0 || expectedMCCs.includes(Number(e.mcc));
+      var isExpected = expectedMCCs.length === 0 || expectedMCCs.includes(String(e.mcc)) || expectedMCCs.includes(Number(e.mcc));
       if (isExpected) {
         return '<span style="color:var(--text-dim);">' + e.plmn + ' <span style="font-size:9px;">' + e.count + '</span></span>';
       }

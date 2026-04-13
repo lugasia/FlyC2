@@ -20,6 +20,7 @@ const { runRules } = require('./rules');
 const { runStatistics } = require('./stats');
 const orgStore = require('./orgStore');
 const { generateDemoData } = require('./demoGenerator');
+const rsuMonitor = require('./rsuMonitor');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'flycommc2-jwt-secret-change-in-production';
 const JWT_EXPIRES = '24h';
@@ -299,6 +300,14 @@ function clipBbox(bbox, clusterBbox) {
 // Serve SOC Dashboard (static files — no auth needed)
 // ---------------------------------------------------------------------------
 app.use(express.static(path.join(__dirname, 'dashboard')));
+
+// ---------------------------------------------------------------------------
+// RSU Monitor live status — no auth (like /health), for local debugging
+// Usage: curl http://localhost:3000/api/rsu/live/status
+// ---------------------------------------------------------------------------
+app.get('/api/rsu/live/status', safeRoute(async (req, res) => {
+  res.json({ ok: true, data: rsuMonitor.getStatus() });
+}));
 
 // ---------------------------------------------------------------------------
 // Auth wall — all routes below require a valid JWT
@@ -1140,19 +1149,21 @@ app.get('/api/rsu/devices', safeRoute(async (req, res) => {
     }
   }
 
-  // Query both tables in parallel and merge
-  const [measDevices, modemDevices] = await Promise.all([
-    db.getRSUDevices(bbox, hours),
-    db.getModemMeasurementDevices(bbox, hours).catch(err => {
-      console.warn('[RSU] modem_measurements query failed, skipping:', err.message);
-      return [];
-    }),
-  ]);
-  // Merge: modem_measurements devices that aren't already in measurements (by device_id)
+  // Data source toggles — respect ?src=modem_measurements,measurements or default
+  const srcParam = req.query.src || 'modem_measurements';
+  const useMeas = srcParam.includes('measurements') && !srcParam.startsWith('modem');
+  const useModem = srcParam.includes('modem_measurements');
+
+  const queries = [];
+  if (useMeas) queries.push(db.getRSUDevices(bbox, hours).catch(() => []));
+  else queries.push(Promise.resolve([]));
+  if (useModem) queries.push(db.getModemMeasurementDevices(bbox, hours).catch(() => []));
+  else queries.push(Promise.resolve([]));
+
+  const [measDevices, modemDevices] = await Promise.all(queries);
   const measIds = new Set(measDevices.map(d => d.device_id));
   const uniqueModem = modemDevices.filter(d => !measIds.has(d.device_id));
   const devices = [...measDevices, ...uniqueModem];
-  console.log(`[RSU] ${measDevices.length} from measurements + ${uniqueModem.length} from modem_measurements = ${devices.length} total`);
   res.json({ ok: true, data: devices });
 }));
 
@@ -1638,6 +1649,42 @@ app.get('/api/alerts/stream', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// SSE endpoint for RSU real-time measurement + alert streaming
+// Pushes delta measurements and alerts every 5s poll cycle
+// ---------------------------------------------------------------------------
+app.get('/api/rsu/stream', (req, res) => {
+  // authMiddleware already ran (app.use('/api/rsu', authMiddleware)) and set req.auth
+  const orgId = req.auth.orgId;
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+
+  // Send initial connection message with current status
+  const status = rsuMonitor.getOrgStatus(orgId);
+  res.write(`data: ${JSON.stringify({ type: 'rsu:connected', orgId, status })}\n\n`);
+
+  const client = rsuMonitor.addSSEClient(res, orgId);
+  req.on('close', () => rsuMonitor.removeSSEClient(client));
+});
+
+// ---------------------------------------------------------------------------
+// RSU data sources toggle — switch between modem_measurements and/or measurements
+// ---------------------------------------------------------------------------
+app.post('/api/rsu/sources', safeRoute(async (req, res) => {
+  const { modem_measurements, measurements } = req.body;
+  const orgId = req.auth ? req.auth.orgId : null;
+  rsuMonitor.setDataSources(orgId, {
+    useModemMeasurements: modem_measurements !== false,
+    useMeasurements: measurements === true,
+  });
+  console.log(`[RSU] Data sources updated by ${req.auth.email}: modem_measurements=${modem_measurements !== false}, measurements=${measurements === true}`);
+  res.json({ ok: true });
+}));
+
+// ---------------------------------------------------------------------------
 // API: Health check (updated — no more watermark/threat_events dependency)
 // ---------------------------------------------------------------------------
 app.get('/health', safeRoute(async (req, res) => {
@@ -1649,6 +1696,7 @@ app.get('/health', safeRoute(async (req, res) => {
     alert_breakdown: alertStats,
     uptime: process.uptime(),
     sse_clients: sseClients.size,
+    rsu_monitor: rsuMonitor.getStatus(),
   });
 }));
 
@@ -1763,6 +1811,29 @@ function startServer() {
         await db.healthCheck();
         lastHealthCheckOk = true;
         console.log(`[AGENT] ClickHouse: CONNECTED`);
+        // Wire RSU monitor alerts into the main alert system
+        rsuMonitor.setOnAlert(function(alert) {
+          // Build a measurement-like object from the alert for recordAlert
+          const fakeMeasurement = {
+            timestamp: alert.timestamp,
+            sample_id: alert.sample_id || `rsu_${Date.now()}`,
+            cell_pci: alert.cell_id,
+            cell_enb: alert.cell_enb,
+            cell_eci: null,
+            location_lat_rounded: alert.location_lat,
+            location_lng_rounded: alert.location_lng,
+            network_mcc: alert.network_mcc,
+            network_PLMN: null,
+            network_operator: null,
+            deviceInfo_deviceId: alert.device_id,
+          };
+          const recorded = recordAlert(alert, fakeMeasurement);
+          if (recorded) pushSSE([recorded]);
+        });
+        // Start RSU real-time monitor after ClickHouse is confirmed online
+        rsuMonitor.start().catch(err => {
+          console.error(`[AGENT] RSU Monitor startup error:`, err.message);
+        });
       } catch (e) {
         lastHealthCheckOk = false;
         console.log(`[AGENT] ClickHouse: OFFLINE (${e.message})`);

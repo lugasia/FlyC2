@@ -1227,10 +1227,10 @@
     <div class="mode-desc" id="modeDesc">Mobile SDK data — all sources</div>
   </div>
 
-  <!-- Settings: Time -->
-  <div class="sidebar-section">
+  <!-- Settings: Time (hidden in RSU mode) -->
+  <div class="sidebar-section" id="settingsSection">
     <div class="sidebar-section-title">Settings</div>
-    <div class="sidebar-control">
+    <div class="sidebar-control" id="timeRangeControl">
       <div class="sidebar-control-label">Time Range</div>
       <div class="sidebar-time-btns">
         <button class="time-btn" id="timeBtn24h" onclick="selectTimeRange(24)">24h</button>
@@ -1301,6 +1301,16 @@
     <div class="sidebar-section-title">RSU Fleet</div>
     <div id="rsuStatusInfo" style="font-size:10px;color:var(--text-secondary);">
       <span style="color:var(--text-dim);font-style:italic;">Waiting for scan...</span>
+    </div>
+    <!-- RSU Data Sources toggle -->
+    <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px;">
+      <div style="font-size:9px;color:var(--text-dim);font-weight:600;letter-spacing:0.5px;margin-bottom:4px;">RSU DATA SOURCES</div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-secondary);cursor:pointer;margin-bottom:3px;">
+        <input type="checkbox" id="rsuSrcModemMeas" checked onchange="updateRSUDataSources()" style="accent-color:var(--cyan);"> modem_measurements
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-secondary);cursor:pointer;">
+        <input type="checkbox" id="rsuSrcMeasurements" onchange="updateRSUDataSources()" style="accent-color:var(--cyan);"> measurements <span style="font-size:8px;color:var(--text-dim);">(legacy)</span>
+      </label>
     </div>
   </div>
 
@@ -1402,7 +1412,7 @@
   <div class="panel-row row-map">
     <div class="panel" id="panelMap" data-panel="map">
       <div class="panel-header" onclick="togglePanel('map')">
-        <span><span class="collapse-chevron" id="chevron-map">▼</span> ANOMALY MAP — <span id="mapRegionLabel">Global</span></span>
+        <span><span class="collapse-chevron" id="chevron-map">▼</span> ANOMALY MAP</span>
         <span style="display:flex;gap:12px;align-items:center;">
           <span id="mapStats" style="font-size:10px;color:var(--text-dim)">--</span>
         </span>
@@ -1462,7 +1472,7 @@
   <div class="panel-row" id="scanPanelRow">
     <div class="panel" id="panelScan" data-panel="scan">
       <div class="panel-header" onclick="togglePanel('scan')">
-        <span><span class="collapse-chevron" id="chevron-scan">▼</span> LIVE SCAN — <span id="scanRegionLabel">Global</span></span>
+        <span><span class="collapse-chevron" id="chevron-scan">▼</span> LIVE SCAN</span>
         <span style="display:flex;gap:12px;align-items:center;">
           <span id="scanPanelSummary" style="font-size:10px;color:var(--text-dim)">--</span>
         </span>
@@ -1602,16 +1612,41 @@
   </div>
   <!-- Tabs -->
   <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg-primary);">
-    <button class="rsu-tab active" data-tab="modem" onclick="switchRSUTab('modem')">MODEM</button>
-    <button class="rsu-tab" data-tab="cellular-qoe" onclick="switchRSUTab('cellular-qoe')">CELLULAR</button>
-    <button class="rsu-tab" data-tab="wifi-qoe" onclick="switchRSUTab('wifi-qoe')">WIFI</button>
-    <button class="rsu-tab" data-tab="gnss" onclick="switchRSUTab('gnss')">GNSS</button>
+    <button class="rsu-tab active" data-tab="overview" onclick="switchRSUTab('overview')">OVERVIEW</button>
+    <button class="rsu-tab" data-tab="modem" onclick="switchRSUTab('modem')">MODEM</button>
     <button class="rsu-tab" data-tab="spectrum" onclick="switchRSUTab('spectrum')">RF SPECTRUM</button>
     <button class="rsu-tab" data-tab="alerts" onclick="switchRSUTab('alerts')">ALERTS</button>
   </div>
   <div class="rsu-panel-body">
-    <!-- Modem Tab (default active) -->
-    <div class="rsu-tab-content" id="rsuTabModem">
+    <!-- OVERVIEW Tab (default) — consolidated real-time view -->
+    <div class="rsu-tab-content" id="rsuTabOverview">
+      <!-- Signal Quality -->
+      <div class="rsu-panel-section">
+        <div class="rsu-panel-section-title">SIGNAL QUALITY</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;font-weight:600;letter-spacing:0.5px;">Cellular</div>
+        <div id="rsuPanelSignal"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
+        <div id="rsuPanelWifiSignal" style="margin-top:6px;"></div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:8px;margin-bottom:4px;font-weight:600;letter-spacing:0.5px;">GNSS</div>
+        <div id="rsuPanelGnssCompact"></div>
+      </div>
+      <!-- QoE Network -->
+      <div class="rsu-panel-section">
+        <div class="rsu-panel-section-title">QOE NETWORK</div>
+        <div id="rsuPanelQoeOverview"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
+      </div>
+      <!-- Cell Info -->
+      <div class="rsu-panel-section">
+        <div class="rsu-panel-section-title">CELL INFO</div>
+        <div id="rsuPanelCell"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
+      </div>
+      <!-- Recent Alerts -->
+      <div class="rsu-panel-section">
+        <div class="rsu-panel-section-title">RECENT ALERTS</div>
+        <div id="rsuPanelAlertsCompact"><div style="color:var(--text-dim);font-size:10px;">No recent alerts</div></div>
+      </div>
+    </div>
+    <!-- Modem Tab (detailed) -->
+    <div class="rsu-tab-content" id="rsuTabModem" style="display:none;">
       <div class="rsu-panel-section">
         <div class="rsu-panel-section-title">Modem State</div>
         <div id="rsuPanelModemState"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
@@ -1635,36 +1670,6 @@
       <div class="rsu-panel-section">
         <div class="rsu-panel-section-title">Throughput</div>
         <div id="rsuPanelModemThroughput"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
-      </div>
-    </div>
-    <!-- Cellular+QoE Tab -->
-    <div class="rsu-tab-content" id="rsuTabCellular-qoe" style="display:none;">
-      <div class="rsu-panel-section">
-        <div class="rsu-panel-section-title">Signal Quality</div>
-        <div id="rsuPanelSignal"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
-      </div>
-      <div class="rsu-panel-section">
-        <div class="rsu-panel-section-title">Cell Info</div>
-        <div id="rsuPanelCell"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
-      </div>
-      <div class="rsu-panel-section">
-        <div class="rsu-panel-section-title">Network Quality</div>
-        <div id="rsuPanelQoe"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
-      </div>
-      <div class="rsu-panel-section">
-        <div class="rsu-panel-section-title">Throughput</div>
-        <div id="rsuPanelThroughput"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
-      </div>
-    </div>
-    <!-- WiFi+QoE Tab -->
-    <div class="rsu-tab-content" id="rsuTabWifi-qoe" style="display:none;">
-      <div class="rsu-panel-section">
-        <div class="rsu-panel-section-title">WiFi Networks</div>
-        <div id="rsuPanelWifi"><div style="color:var(--text-dim);font-size:10px;">Loading...</div></div>
-      </div>
-      <div class="rsu-panel-section">
-        <div class="rsu-panel-section-title">Latest Scan</div>
-        <div id="rsuPanelWifiLatest"><div style="color:var(--text-dim);font-size:10px;">No data</div></div>
       </div>
     </div>
     <!-- GNSS Tab -->
@@ -1981,62 +1986,110 @@ function switchMode(mode) {
   mode = mode.toUpperCase();
   if (mode !== 'SDK' && mode !== 'RSU') return;
   currentDeploymentMode = mode;
+  var isRSU = mode === 'RSU';
 
-  // Update UI
-  document.getElementById('modeBtnSDK').classList.toggle('active', mode === 'SDK');
+  // Update mode toggle buttons
+  document.getElementById('modeBtnSDK').classList.toggle('active', !isRSU);
   document.getElementById('modeBtnSDK').classList.remove('active-rsu');
-  document.getElementById('modeBtnRSU').classList.toggle('active-rsu', mode === 'RSU');
+  document.getElementById('modeBtnRSU').classList.toggle('active-rsu', isRSU);
   document.getElementById('modeBtnRSU').classList.remove('active');
-  if (mode === 'SDK') document.getElementById('modeBtnSDK').classList.add('active');
-  document.getElementById('modeDesc').textContent = mode === 'SDK'
-    ? 'Mobile SDK data — all sources'
-    : 'Remote Sensing Units — modem data';
+  if (!isRSU) document.getElementById('modeBtnSDK').classList.add('active');
+  document.getElementById('modeDesc').textContent = isRSU
+    ? 'Real-time RSU monitoring'
+    : 'Mobile SDK data — all sources';
   document.getElementById('modeLabel').textContent = mode;
 
-  // Show/hide RSU status panel + fleet grid
-  var rsuSection = document.getElementById('rsuStatusSection');
-  if (rsuSection) rsuSection.style.display = mode === 'RSU' ? '' : 'none';
-  // Fleet grid only visible in RSU mode AND when scan area is selected + scan started
-  updateRSUFleetVisibility();
-  var scanPanelRow = document.getElementById('scanPanelRow');
-  if (scanPanelRow) scanPanelRow.style.display = mode === 'RSU' ? 'none' : '';
+  // ----- RSU mode: completely different layout -----
+  // Hide: time range, scan button row (scan is always-on in RSU)
+  var timeRangeControl = document.getElementById('timeRangeControl');
+  if (timeRangeControl) timeRangeControl.style.display = isRSU ? 'none' : '';
+  var scanActionSection = document.getElementById('startScanBtn');
+  if (scanActionSection) scanActionSection.parentElement.parentElement.style.display = isRSU ? 'none' : '';
 
-  // Notify server and reload
+  // Show RSU status panel
+  var rsuSection = document.getElementById('rsuStatusSection');
+  if (rsuSection) rsuSection.style.display = isRSU ? '' : 'none';
+  // scanPanelRow stays visible in both modes (shows alerts in RSU mode)
+
+  if (isRSU) {
+    // Auto-set selectedHours (just needs to be non-null)
+    selectedHours = 1;
+    // Auto-apply org cluster polygon as scan area
+    if (!customBbox && currentOrg && currentOrg.cluster && currentOrg.cluster.coordinates) {
+      var coords = currentOrg.cluster.coordinates[0];
+      var latMin = 90, latMax = -90, lngMin = 180, lngMax = -180;
+      for (var ci = 0; ci < coords.length; ci++) {
+        var clng = coords[ci][0], clat = coords[ci][1];
+        if (clat < latMin) latMin = clat;
+        if (clat > latMax) latMax = clat;
+        if (clng < lngMin) lngMin = clng;
+        if (clng > lngMax) lngMax = clng;
+      }
+      customBbox = { latMin: latMin, lngMin: lngMin, latMax: latMax, lngMax: lngMax };
+      // Draw cluster polygon on map
+      if (map) {
+        var latlngs = coords.map(function(c) { return [c[1], c[0]]; });
+        if (drawnLayer) map.removeLayer(drawnLayer);
+        drawnLayer = L.polygon(latlngs, { color: '#00d4aa', weight: 2, fillOpacity: 0.05 }).addTo(map);
+        map.fitBounds(drawnLayer.getBounds(), { padding: [20, 20] });
+      }
+      console.log('[RSU] Auto-applied org cluster polygon as scan area');
+    }
+    updateScanReadiness();
+  }
+
+  // Clear all state
+  resetAccumulator();
+  if (mapLayerClean) mapLayerClean.clearLayers();
+  if (mapLayerAnomalies) mapLayerAnomalies.clearLayers();
+  if (mapLayerSiteLines) mapLayerSiteLines.clearLayers();
+  if (mapLayerRSU) mapLayerRSU.clearLayers();
+  if (mapLayerSites) mapLayerSites.clearLayers();
+  rsuBandsAccumulator = {};
+  rsuTechAccumulator = {};
+  sitesCache = [];
+  ['statScanned','statThreatLevel','statTopThreat','statActiveCells'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = '--';
+  });
+
+  if (isRSU) {
+    // RSU mode: connect SSE stream + auto-start scanning (always on)
+    initRSUStream();
+    scanStarted = true;
+    updateScanReadiness();
+    updateRSUFleetVisibility();
+    console.log('[RSU] Activated: scanStarted=' + scanStarted + ' customBbox=' + !!customBbox + ' devices=' + rsuDevicesCache.length);
+    refreshAll();
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(refreshAll, 15000);
+  } else {
+    // SDK mode: disconnect RSU stream, restore normal flow
+    closeRSUStream();
+    scanStarted = false;
+    updateScanReadiness();
+    updateRSUFleetVisibility();
+    loadRSUDevices();
+    loadKnownSites();
+  }
+
+  // Notify server (fire-and-forget — don't block UI on this)
   authFetch(API_BASE + '/api/mode', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mode: mode }),
   }).then(function(r) { return r.json(); }).then(function(j) {
-    if (j.ok) {
-      console.log('[MODE] Switched to ' + mode);
-      // Clear all state on mode switch
-      resetAccumulator();
-      if (mapLayerClean) mapLayerClean.clearLayers();
-      if (mapLayerAnomalies) mapLayerAnomalies.clearLayers();
-      if (mapLayerSiteLines) mapLayerSiteLines.clearLayers();
-      if (mapLayerRSU) mapLayerRSU.clearLayers();
-      if (mapLayerSites) mapLayerSites.clearLayers();
-      rsuBandsAccumulator = {};
-      rsuTechAccumulator = {};
-      sitesCache = [];
-      // Reset stat cards
-      ['statScanned','statThreatLevel','statTopThreat','statActiveCells'].forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) el.innerHTML = '--';
-      });
-      loadRSUDevices();
-      loadKnownSites();
-      if (scanStarted) refreshAll();
-    }
+    if (j.ok) console.log('[MODE] Server confirmed: ' + mode);
   }).catch(function(e) { console.error('Mode switch error:', e); });
 }
 
 function updateRSUFleetVisibility() {
   var fleetContainer = document.getElementById('rsuFleetContainer');
   var scanPanelRow = document.getElementById('scanPanelRow');
-  var showFleet = currentDeploymentMode === 'RSU' && scanStarted && customBbox !== null;
-  if (fleetContainer) fleetContainer.style.display = showFleet ? '' : 'none';
-  if (scanPanelRow) scanPanelRow.style.display = (currentDeploymentMode === 'RSU') ? 'none' : '';
+  var isRSU = currentDeploymentMode === 'RSU';
+  // RSU mode: show fleet grid AND scan table (for alerts)
+  if (fleetContainer) fleetContainer.style.display = isRSU ? '' : 'none';
+  if (scanPanelRow) scanPanelRow.style.display = '';
 }
 
 // Load current mode from server on init
@@ -2298,6 +2351,24 @@ function clearCustomArea() {
   if (drawnItems) drawnItems.clearLayers();
   document.getElementById('locationSearch').value = '';
   document.getElementById('clearAreaBtn').style.display = 'none';
+
+  // RSU mode: re-apply org cluster polygon (RSU always needs a bbox)
+  if (currentDeploymentMode === 'RSU' && currentOrg && currentOrg.cluster && currentOrg.cluster.coordinates) {
+    var coords = currentOrg.cluster.coordinates[0];
+    var latMin = 90, latMax = -90, lngMin = 180, lngMax = -180;
+    for (var ci = 0; ci < coords.length; ci++) {
+      if (coords[ci][1] < latMin) latMin = coords[ci][1];
+      if (coords[ci][1] > latMax) latMax = coords[ci][1];
+      if (coords[ci][0] < lngMin) lngMin = coords[ci][0];
+      if (coords[ci][0] > lngMax) lngMax = coords[ci][0];
+    }
+    customBbox = { latMin: latMin, lngMin: lngMin, latMax: latMax, lngMax: lngMax };
+    var latlngs = coords.map(function(c) { return [c[1], c[0]]; });
+    drawnLayer = L.polygon(latlngs, { color: '#00d4aa', weight: 2, fillOpacity: 0.05 }).addTo(map);
+    map.fitBounds(drawnLayer.getBounds(), { padding: [20, 20] });
+    refreshAll();
+  }
+
   updateScanReadiness();
 }
 
@@ -2374,7 +2445,10 @@ function toggleScan() {
     updateRSUFleetVisibility();
     refreshAll();
     if (refreshInterval) clearInterval(refreshInterval);
-    refreshInterval = setInterval(refreshAll, REFRESH_MS);
+    // RSU mode: 15s refresh (just device list + sites, no heavy scan)
+    // SDK mode: 60s refresh (full scan pipeline)
+    var interval = currentDeploymentMode === 'RSU' ? 15000 : REFRESH_MS;
+    refreshInterval = setInterval(refreshAll, interval);
   }
 }
 
@@ -3390,6 +3464,11 @@ var THREAT_COLORS = {
   MCC_ANOMALY: '#06b6d4', EMPTY_NEIGHBORS: '#6366f1',
   TA_RSRP_MISMATCH: '#8b5cf6', EXTREME_RSRP: '#fb923c', RAPID_RESELECTION: '#e11d48',
   TAC_LAC_JUMP: '#d946ef', MULTI_DEVICE_CORROBORATION: '#be123c', BAD_MEASUREMENT: '#6b7280',
+  // RSU real-time rules
+  RSU_MCC_MISMATCH: '#dc2626', RSU_NEW_CELL: '#f97316', RSU_TAC_JUMP: '#d946ef',
+  RSU_SIGNAL_DEGRADATION: '#eab308', RSU_CELLULAR_JAMMING: '#ef4444', RSU_GPS_JAMMING: '#f43f5e',
+  RSU_GPS_SPOOFING: '#e11d48', RSU_NETWORK_DOWNGRADE: '#ec4899', RSU_UNKNOWN_SITE: '#fb923c',
+  RSU_DEVICE_OFFLINE: '#6b7280', RSU_CELL_CHANGE: '#8b5cf6', RSU_RSRQ_DEGRADATION: '#eab308',
 };
 
 function getThreatColor(rule) { return THREAT_COLORS[rule] || '#6b7280'; }
@@ -3413,6 +3492,19 @@ var ANOMALY_EXPLAINER = {
   MULTI_DEVICE_CORROBORATION: { title: 'Multi-Device Corroboration' },
   BAD_MEASUREMENT: { title: 'Bad Measurement' },
   ROAMING: { title: 'Roaming' },
+  // RSU real-time rules
+  RSU_MCC_MISMATCH: { title: 'Foreign MCC' },
+  RSU_NEW_CELL: { title: 'New Cell Detected' },
+  RSU_TAC_JUMP: { title: 'TAC Jump' },
+  RSU_SIGNAL_DEGRADATION: { title: 'Signal Degradation' },
+  RSU_CELLULAR_JAMMING: { title: 'Cellular Jamming' },
+  RSU_GPS_JAMMING: { title: 'GPS Jamming' },
+  RSU_GPS_SPOOFING: { title: 'GPS Spoofing' },
+  RSU_NETWORK_DOWNGRADE: { title: 'Network Downgrade' },
+  RSU_UNKNOWN_SITE: { title: 'Unknown Cell Site' },
+  RSU_DEVICE_OFFLINE: { title: 'Device Offline' },
+  RSU_CELL_CHANGE: { title: 'Serving Cell Change' },
+  RSU_RSRQ_DEGRADATION: { title: 'Quality Degradation' },
 };
 
 // Heatmap layer
@@ -4153,8 +4245,6 @@ async function loadLiveScan() {
 
     var counts = getAccumulatedCounts();
 
-    var scanRegionEl = document.getElementById('scanRegionLabel');
-    if (scanRegionEl) scanRegionEl.textContent = d.region || 'Global';
     var scanSummaryEl = document.getElementById('scanSummary');
     if (scanSummaryEl) scanSummaryEl.textContent = totalScannedAll.toLocaleString() + ' scanned | ' + counts.total + ' anomalies';
     var scanAnomalyEl = document.getElementById('scanAnomalyCount');
@@ -4449,11 +4539,13 @@ function flyToMeasurement(sampleId) {
   }
 
   var title = isAnom ? '<b style="color:' + col + '">ANOMALY — ' + sev + '</b>' : '<b style="color:#22c55e">Clean Measurement</b>';
+  var srcInfo = getSourceInfo(m);
+  var srcBadge = '<span class="source-badge ' + srcInfo.cls + '" style="margin-left:8px;"></span> <span style="font-size:10px;color:#94a3b8">' + srcInfo.label + '</span>';
 
   flyToPopup = L.popup({ maxWidth: 400, autoClose: false, closeOnClick: false })
     .setLatLng([lat, lng])
     .setContent(
-      title + '<br>' +
+      title + srcBadge + '<br>' +
       'PCI: ' + (m.cell_pci || '--') +
       (m.cell_enb ? ' | eNB: ' + m.cell_enb : '') +
       (m.cell_eci ? ' | ECI: ' + m.cell_eci : '') + '<br>' +
@@ -4465,7 +4557,6 @@ function flyToMeasurement(sampleId) {
       'TA: ' + (m.signal_timingAdvance != null ? m.signal_timingAdvance : '--') +
       (m.signal_timingAdvance != null ? ' (~' + (m.signal_timingAdvance * 78.12 / 1000).toFixed(1) + 'km)' : '') + '<br>' +
       'Time: ' + fmtDateTime(m.timestamp) +
-      (m._source === 'bad_measurements' ? '<br><span style="color:var(--high);font-size:10px">Source: bad_measurements (' + (m._bad_reason || '') + ')</span>' : '') +
       flagsHtml
     )
     .openOn(map);
@@ -4627,8 +4718,8 @@ var mapHasFittedOnce = false;
 function initMap() {
   if (map) return;
   map = L.map('anomalyMap', {
-    center: [31.5, 34.8],  // Israel default
-    zoom: 9,
+    center: [38.5, 24.0],  // Greece default
+    zoom: 7,
     zoomControl: true,
     attributionControl: false,
     closePopupOnClick: false,  // popups stay open until user clicks X
@@ -4941,8 +5032,6 @@ function updateMap(measurements) {
     mapHasFittedOnce = true;
   }
 
-  document.getElementById('mapRegionLabel').textContent =
-    (regionsCache[currentRegion] && regionsCache[currentRegion].name) || 'Global';
 }
 
 // ---------------------------------------------------------------------------
@@ -4990,10 +5079,19 @@ async function loadRSUDevices() {
   if (rsuLoadInFlight) return;
   rsuLoadInFlight = true;
 
+  // Build data source param from checkboxes
+  var srcParts = [];
+  var srcModemEl = document.getElementById('rsuSrcModemMeas');
+  var srcMeasEl = document.getElementById('rsuSrcMeasurements');
+  if (srcModemEl && srcModemEl.checked) srcParts.push('modem_measurements');
+  if (srcMeasEl && srcMeasEl.checked) srcParts.push('measurements');
+  if (srcParts.length === 0) srcParts.push('modem_measurements'); // fallback
+
   // Only load RSUs within the selected polygon
   var url = API_BASE + '/api/rsu/devices?hours=' + (selectedHours || 24) +
     '&bbox=' + customBbox.latMin + ',' + customBbox.lngMin + ',' +
-    customBbox.latMax + ',' + customBbox.lngMax;
+    customBbox.latMax + ',' + customBbox.lngMax +
+    '&src=' + srcParts.join(',');
 
   try {
     console.log('[RSU] Fetching: ' + url);
@@ -5030,18 +5128,20 @@ function markRSUErrors(anomalousMeasurements) {
   renderRSUDevices();
 }
 
+var rsuMarkerMap = {}; // device_id → L.marker (persistent, no re-create on refresh)
+var rsuInitialFitDone = false;
+
 function renderRSUDevices() {
-  console.log('[RSU] renderRSUDevices: map=' + !!map + ' layer=' + !!mapLayerRSU + ' mode=' + currentDeploymentMode + ' devices=' + rsuDevicesCache.length);
-  if (!mapLayerRSU || !map) { console.warn('[RSU] No map or layer!'); return; }
-  mapLayerRSU.clearLayers();
+  if (!mapLayerRSU || !map) return;
 
   if (currentDeploymentMode !== 'RSU' || rsuDevicesCache.length === 0) {
     updateRSUStatus();
     return;
   }
 
-  var rendered = 0;
+  var currentIds = new Set();
   var rsuBounds = [];
+
   for (var i = 0; i < rsuDevicesCache.length; i++) {
     var d = rsuDevicesCache[i];
     var lat = parseFloat(d.lat);
@@ -5050,8 +5150,18 @@ function renderRSUDevices() {
 
     var status = d._status || getRSUStatus(d);
     var activeSamples = parseInt(d.active_samples, 10) || 0;
+    currentIds.add(d.device_id);
+    rsuBounds.push([lat, lng]);
 
-    // RSU icon marker with status border + dot
+    var existing = rsuMarkerMap[d.device_id];
+    if (existing) {
+      // Update icon in-place (no flicker)
+      existing.setIcon(createRSUMapIcon(status));
+      existing.setLatLng([lat, lng]);
+      continue; // Don't re-create popup — just update icon
+    }
+
+    // First time: create marker
     var icon = createRSUMapIcon(status);
     var marker = L.marker([lat, lng], { icon: icon, zIndexOffset: 1000 });
 
@@ -5083,20 +5193,25 @@ function renderRSUDevices() {
       '</div>';
 
     marker.bindPopup(popupHtml, { maxWidth: 300, autoClose: false, closeOnClick: false });
-    // Click opens the RSU detail panel + highlights card
     (function(did) {
       marker.on('click', function() { openRSUPanel(did); highlightRSUCard(did); });
     })(d.device_id);
     mapLayerRSU.addLayer(marker);
-    rsuBounds.push([lat, lng]);
-    rendered++;
+    rsuMarkerMap[d.device_id] = marker;
   }
 
-  console.log('[RSU] Rendered ' + rendered + ' markers on map');
+  // Remove markers for devices no longer in cache
+  for (var did in rsuMarkerMap) {
+    if (!currentIds.has(did)) {
+      mapLayerRSU.removeLayer(rsuMarkerMap[did]);
+      delete rsuMarkerMap[did];
+    }
+  }
 
-  // Auto-fit map to show all RSU devices
-  if (rendered > 0 && rsuBounds.length > 0) {
+  // Fit map only on first render (don't jump around on refresh)
+  if (!rsuInitialFitDone && rsuBounds.length > 0) {
     map.fitBounds(rsuBounds, { padding: [40, 40], maxZoom: 12 });
+    rsuInitialFitDone = true;
   }
 
   updateRSUStatus();
@@ -5134,25 +5249,16 @@ function renderRSUFleetGrid() {
     var activeSamples = parseInt(d.active_samples, 10) || 0;
     var deviceLabel = 'RSU-' + (d.device_id || '').substring(0, 8);
 
-    // Accumulate bands from latest EARFCN
-    if (!rsuBandsAccumulator[d.device_id]) rsuBandsAccumulator[d.device_id] = new Set();
+    // Show CURRENT serving cell band and RAT only (not accumulated history)
+    var bandsLabel = '--';
     if (d.latest_earfcn) {
       var bi = earfcnToBand(d.latest_earfcn);
-      if (bi) rsuBandsAccumulator[d.device_id].add('B' + bi.band);
+      if (bi) bandsLabel = 'B' + bi.band;
     }
-    var bandsArr = Array.from(rsuBandsAccumulator[d.device_id]);
-    var bandsLabel = bandsArr.length === 0 ? '--' :
-      bandsArr.length <= 3 ? bandsArr.join(', ') :
-      bandsArr.slice(0, 3).join(', ') + ' +' + (bandsArr.length - 3);
-
-    // Accumulate RAT/tech
-    if (!rsuTechAccumulator[d.device_id]) rsuTechAccumulator[d.device_id] = new Set();
+    var techLabel = '--';
     if (d.latest_tech) {
-      var techNorm = String(d.latest_tech).toUpperCase().replace('EUTRAN', 'LTE').replace('NGRAN', 'NR');
-      rsuTechAccumulator[d.device_id].add(techNorm);
+      techLabel = String(d.latest_tech).toUpperCase().replace('EUTRAN', 'LTE').replace('NGRAN', 'NR');
     }
-    var techArr = Array.from(rsuTechAccumulator[d.device_id]);
-    var techLabel = techArr.length === 0 ? '--' : techArr.join(' / ');
 
     // Status badge
     var statusBadge = status === 'online' ? '<span class="rsu-card-status status-online">ONLINE</span>'
@@ -5261,6 +5367,15 @@ function highlightRSUCard(deviceId) {
 // ---------------------------------------------------------------------------
 async function loadKnownSites() {
   if (currentDeploymentMode !== 'RSU') return;
+  // In RSU mode, use loadRSUSitesCache instead (no gray dots)
+  await loadRSUSitesCache();
+}
+
+/**
+ * RSU mode: load sites into cache for lookup, but DON'T render gray dots.
+ * Sites are only shown as connection lines from RSU to active cell.
+ */
+async function loadRSUSitesCache() {
   try {
     var bboxParam = customBbox ? customBbox.latMin + ',' + customBbox.lngMin + ',' + customBbox.latMax + ',' + customBbox.lngMax : '';
     var url = API_BASE + '/api/sites' + (bboxParam ? '?bbox=' + bboxParam : '');
@@ -5268,11 +5383,253 @@ async function loadKnownSites() {
     var json = await res.json();
     if (json.ok && json.data) {
       sitesCache = json.data;
-      renderSitesOnMap(sitesCache);
+      // Build lookup by eNB for fast matching
+      rsuSitesLookup = {};
+      for (var i = 0; i < sitesCache.length; i++) {
+        var s = sitesCache[i];
+        if (s.enb != null) {
+          if (!rsuSitesLookup[String(s.enb)]) rsuSitesLookup[String(s.enb)] = [];
+          rsuSitesLookup[String(s.enb)].push(s);
+        }
+      }
+      // Do NOT render sites as gray dots — only connection lines
+      if (mapLayerSites) mapLayerSites.clearLayers();
     }
   } catch (e) {
     console.error('[SITES] Load error:', e);
   }
+}
+
+var rsuSitesLookup = {}; // eNB → [site, ...]
+var rsuConnectionLayer = null; // L.layerGroup for RSU↔site lines
+
+/**
+ * Draw lines from each online RSU to its connected cell site.
+ * Green line = known site, red line = unknown site.
+ */
+function renderRSUConnectionLines() {
+  if (!map) return;
+  if (!rsuConnectionLayer) {
+    rsuConnectionLayer = L.layerGroup().addTo(map);
+  }
+  rsuConnectionLayer.clearLayers();
+
+  for (var i = 0; i < rsuDevicesCache.length; i++) {
+    var d = rsuDevicesCache[i];
+    var rsuLat = parseFloat(d.lat);
+    var rsuLng = parseFloat(d.lng);
+    if (isNaN(rsuLat) || isNaN(rsuLng) || rsuLat === 0) continue;
+
+    var activeSamples = parseInt(d.active_samples, 10) || 0;
+    if (activeSamples === 0) continue; // offline — no connection
+
+    var enb = d.latest_enb != null ? String(d.latest_enb) : null;
+    var pci = d.latest_pci != null ? String(d.latest_pci) : null;
+    if (!enb) continue;
+
+    // Find matching site
+    var sites = rsuSitesLookup[enb] || [];
+    var matchedSite = null;
+    for (var si = 0; si < sites.length; si++) {
+      if (pci && sites[si].sectors) {
+        for (var sec = 0; sec < sites[si].sectors.length; sec++) {
+          if (String(sites[si].sectors[sec].pci) === pci) { matchedSite = sites[si]; break; }
+        }
+      }
+      if (!matchedSite && sites[si].lat && sites[si].lng) matchedSite = sites[si];
+      if (matchedSite) break;
+    }
+
+    if (matchedSite) {
+      // Known site — green dashed line
+      var siteLat = parseFloat(matchedSite.lat);
+      var siteLng = parseFloat(matchedSite.lng);
+      if (!isNaN(siteLat) && !isNaN(siteLng)) {
+        var line = L.polyline([[rsuLat, rsuLng], [siteLat, siteLng]], {
+          color: '#22c55e', weight: 2, opacity: 0.7, dashArray: '6 4'
+        });
+        line.bindTooltip('eNB ' + enb + ' (Known)', { permanent: false, direction: 'center', className: 'site-popup' });
+        rsuConnectionLayer.addLayer(line);
+        // Small green dot at site end
+        rsuConnectionLayer.addLayer(L.circleMarker([siteLat, siteLng], {
+          radius: 4, fillColor: '#22c55e', fillOpacity: 0.8, color: '#166534', weight: 1
+        }));
+      }
+    } else {
+      // Unknown site — red pulsing indicator at RSU location
+      rsuConnectionLayer.addLayer(L.circleMarker([rsuLat, rsuLng], {
+        radius: 12, fillColor: 'transparent', fillOpacity: 0, color: '#ef4444', weight: 2, dashArray: '3 3'
+      }).bindTooltip('UNKNOWN eNB ' + enb + ' PCI ' + (pci || '?'), { permanent: false }));
+    }
+  }
+}
+
+/**
+ * Update KPI stat cards from RSU data (alerts + devices).
+ */
+function updateRSUKPIs() {
+  var onlineCount = 0, offlineCount = 0, errorCount = 0;
+  for (var i = 0; i < rsuDevicesCache.length; i++) {
+    var status = rsuDevicesCache[i]._status || getRSUStatus(rsuDevicesCache[i]);
+    if (status === 'online') onlineCount++;
+    else if (status === 'error') errorCount++;
+    else offlineCount++;
+  }
+
+  // Card 1: Scan Status → RSU devices status
+  var el1 = document.getElementById('statScanned');
+  if (el1) el1.innerHTML = '<span style="color:var(--green);">' + onlineCount + '</span> / ' + rsuDevicesCache.length;
+  var sub1 = document.getElementById('statScannedSub');
+  if (sub1) sub1.textContent = onlineCount + ' online, ' + offlineCount + ' offline';
+
+  // Card 2: Threat Level from alerts
+  var critCount = 0, highCount = 0, medCount = 0;
+  for (var ai = 0; ai < alertLogData.length; ai++) {
+    var sev = (alertLogData[ai].severity || '').toUpperCase();
+    if (sev === 'CRITICAL') critCount++;
+    else if (sev === 'HIGH') highCount++;
+    else if (sev === 'MEDIUM') medCount++;
+  }
+  var totalAlerts = critCount + highCount + medCount;
+  var threatEl = document.getElementById('statThreatLevel');
+  var threatSubEl = document.getElementById('statThreatSub');
+  if (threatEl) {
+    var level = 'CLEAR', levelColor = 'var(--green)';
+    if (critCount > 0) { level = 'CRITICAL'; levelColor = 'var(--critical)'; }
+    else if (highCount > 0) { level = 'HIGH'; levelColor = 'var(--high)'; }
+    else if (medCount > 0) { level = 'ELEVATED'; levelColor = 'var(--medium)'; }
+    threatEl.textContent = level;
+    threatEl.style.color = levelColor;
+  }
+  if (threatSubEl) {
+    threatSubEl.textContent = totalAlerts > 0
+      ? critCount + ' crit / ' + highCount + ' high / ' + medCount + ' med'
+      : 'No active alerts';
+  }
+
+  // Card 3: Top Threat
+  var topEl = document.getElementById('statTopThreat');
+  if (topEl) {
+    if (alertLogData.length === 0) {
+      topEl.innerHTML = '<span style="color:var(--green);">No threats</span>';
+    } else {
+      var ruleCount = {};
+      for (var ri = 0; ri < Math.min(alertLogData.length, 100); ri++) {
+        var rule = alertLogData[ri].rule || '?';
+        ruleCount[rule] = (ruleCount[rule] || 0) + 1;
+      }
+      var topRule = Object.entries(ruleCount).sort(function(a,b) { return b[1] - a[1]; })[0];
+      topEl.innerHTML = '<span class="badge badge-high" style="font-size:9px;">' + topRule[0] + '</span>' +
+        '<div style="font-size:10px;color:var(--text-dim);margin-top:2px;">' + topRule[1] + ' detections</div>';
+    }
+  }
+
+  // Card 4: Active Cells
+  var cellSet = new Set();
+  for (var ci = 0; ci < rsuDevicesCache.length; ci++) {
+    var dev = rsuDevicesCache[ci];
+    if (dev.latest_pci != null && dev.latest_enb != null) {
+      cellSet.add(dev.latest_pci + '_' + dev.latest_enb);
+    }
+  }
+  var cellEl = document.getElementById('statActiveCells');
+  if (cellEl) { cellEl.textContent = cellSet.size; cellEl.style.color = cellSet.size > 0 ? 'var(--cyan)' : 'var(--text-dim)'; }
+  var cellSub = document.getElementById('statActiveCellsSub');
+  if (cellSub) cellSub.textContent = cellSet.size > 0 ? 'connected cells' : '--';
+
+  // Card 5: Active Devices
+  updateActiveDevicesKPI(onlineCount);
+
+  // Feed RSU alerts + device data into the accumulator system so Threat Breakdown,
+  // RAT+PLMN, Executive Summary, and Live Scan table all populate.
+  updateRSUPanels();
+}
+
+/**
+ * Convert RSU alerts into measurement-like objects and feed them into the
+ * accumulator pipeline. Then call all render functions.
+ */
+function updateRSUPanels() {
+  // Build measurement-like objects from alerts
+  var fakeMeasurements = [];
+
+  // 1. From alert log → anomalous measurements
+  for (var ai = 0; ai < alertLogData.length; ai++) {
+    var a = alertLogData[ai];
+    var sampleId = a.sample_id || ('rsu_alert_' + a.id);
+    fakeMeasurements.push({
+      sample_id: sampleId,
+      timestamp: a.timestamp,
+      is_anomalous: true,
+      max_severity: a.severity || 'MEDIUM',
+      source: 'modem',
+      cell_pci: a.cell_id || a.cell,
+      cell_enb: a.cell_enb,
+      cell_eci: null,
+      network_mcc: a.network_mcc,
+      network_PLMN: a.network_plmn,
+      network_operator: a.network_operator,
+      location_lat_rounded: a.location_lat,
+      location_lng_rounded: a.location_lng,
+      deviceInfo_deviceId: a.device_id,
+      signal_rsrp: null,
+      signal_snr: null,
+      tech: null,
+      flags: [{ rule: a.rule, severity: a.severity, score: a.score || 0, details: a.details }],
+    });
+  }
+
+  // 2. From RSU device cache → clean measurements (for RAT/PLMN stats)
+  for (var di = 0; di < rsuDevicesCache.length; di++) {
+    var d = rsuDevicesCache[di];
+    var status = d._status || getRSUStatus(d);
+    if (status !== 'online') continue;
+    var cleanId = 'rsu_device_' + d.device_id;
+    fakeMeasurements.push({
+      sample_id: cleanId,
+      timestamp: d.last_seen,
+      is_anomalous: false,
+      source: 'modem',
+      cell_pci: d.latest_pci,
+      cell_enb: d.latest_enb,
+      network_PLMN: d.latest_plmn,
+      network_mcc: d.latest_plmn ? String(d.latest_plmn).split('-')[0] : null,
+      network_operator: null,
+      location_lat_rounded: d.lat,
+      location_lng_rounded: d.lng,
+      deviceInfo_deviceId: d.device_id,
+      signal_rsrp: d.latest_rsrp,
+      tech: d.latest_tech,
+    });
+  }
+
+  // Feed into accumulator
+  accumulateScanResults(fakeMeasurements);
+  totalScannedAll = Object.keys(accumulatedAnomalies).length + Object.keys(accumulatedClean).length;
+
+  // Build scan table data (alerts as rows)
+  lastScanTableData = fakeMeasurements.filter(function(m) { return m.is_anomalous; });
+
+  // Build RAT and PLMN maps from all devices
+  var ratMap = {}, plmnMap = {};
+  for (var ri = 0; ri < rsuDevicesCache.length; ri++) {
+    var dev = rsuDevicesCache[ri];
+    var tech = (dev.latest_tech || 'Unknown').toUpperCase();
+    ratMap[tech] = (ratMap[tech] || 0) + 1;
+    var plmn = dev.latest_plmn || '';
+    if (plmn) {
+      if (!plmnMap[plmn]) plmnMap[plmn] = { count: 0, operator: '', mcc: plmn.split('-')[0] || '', devices: new Set() };
+      plmnMap[plmn].count++;
+      if (dev.device_id) plmnMap[plmn].devices.add(dev.device_id);
+    }
+  }
+
+  // Render all panels
+  renderThreatBreakdown();
+  renderScanTable();
+  renderRatStackedBar(ratMap, rsuDevicesCache.length);
+  renderMccInline(plmnMap);
+  if (typeof renderThreatTimeline === 'function') renderThreatTimeline();
 }
 
 function renderSitesOnMap(sites) {
@@ -5367,6 +5724,150 @@ function initSSE() {
       if (el) { el.textContent = 'RECONNECTING'; el.style.background = 'var(--medium-bg)'; el.style.color = 'var(--medium)'; }
     };
   } catch (e) { console.error('SSE init error:', e); }
+}
+
+// ---------------------------------------------------------------------------
+// RSU REAL-TIME STREAM — SSE connection for live measurement + alert data
+// ---------------------------------------------------------------------------
+var rsuStreamSSE = null;
+var rsuStreamConnected = false;
+
+function initRSUStream() {
+  closeRSUStream();
+  if (!authToken) return;
+  try {
+    var sseUrl = API_BASE + '/api/rsu/stream?token=' + encodeURIComponent(authToken);
+    console.log('[RSU-STREAM] Connecting to', sseUrl);
+    var evtSource = new EventSource(sseUrl);
+    rsuStreamSSE = evtSource;
+
+    evtSource.onopen = function() {
+      rsuStreamConnected = true;
+      console.log('[RSU-STREAM] Connected');
+      var el = document.getElementById('rsuStreamStatus');
+      if (el) { el.textContent = 'LIVE'; el.style.background = 'var(--green-bg)'; el.style.color = 'var(--green)'; }
+    };
+
+    evtSource.onmessage = function(event) {
+      try {
+        var data = JSON.parse(event.data);
+        if (data.type === 'rsu:connected') {
+          console.log('[RSU-STREAM] Initial status:', data.status ? (data.status.trackedDevices + ' devices, ' + data.status.trackedCells + ' cells') : 'no monitor');
+          // Update RSU fleet info with monitor status
+          if (data.status) {
+            updateRSUMonitorStatus(data.status);
+          }
+        } else if (data.type === 'rsu:update') {
+          handleRSUStreamUpdate(data);
+        }
+      } catch (e) {
+        console.error('[RSU-STREAM] Parse error:', e);
+      }
+    };
+
+    evtSource.onerror = function() {
+      rsuStreamConnected = false;
+      console.warn('[RSU-STREAM] Connection error — will auto-reconnect');
+      var el = document.getElementById('rsuStreamStatus');
+      if (el) { el.textContent = 'RECONNECTING'; el.style.background = 'var(--medium-bg)'; el.style.color = 'var(--medium)'; }
+    };
+  } catch (e) {
+    console.error('[RSU-STREAM] Init error:', e);
+  }
+}
+
+function closeRSUStream() {
+  if (rsuStreamSSE) {
+    try { rsuStreamSSE.close(); } catch(_) {}
+    rsuStreamSSE = null;
+    rsuStreamConnected = false;
+    console.log('[RSU-STREAM] Disconnected');
+  }
+}
+
+function updateRSUDataSources() {
+  var useModemMeas = document.getElementById('rsuSrcModemMeas').checked;
+  var useMeasurements = document.getElementById('rsuSrcMeasurements').checked;
+  console.log('[RSU] Data sources: modem_measurements=' + useModemMeas + ' measurements=' + useMeasurements);
+  authFetch(API_BASE + '/api/rsu/sources', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ modem_measurements: useModemMeas, measurements: useMeasurements }),
+  }).then(function(r) { return r.json(); }).then(function(j) {
+    if (j.ok) console.log('[RSU] Data sources updated');
+  }).catch(function(e) { console.error('[RSU] Source update error:', e); });
+}
+
+function handleRSUStreamUpdate(data) {
+  var measurements = data.measurements || [];
+  var alerts = data.alerts || [];
+  var stats = data.stats || {};
+
+  if (measurements.length > 0) {
+    console.log('[RSU-STREAM] ' + measurements.length + ' new measurements, ' + alerts.length + ' alerts');
+  }
+
+  // Update RSU fleet status info
+  updateRSUMonitorStatus(stats);
+
+  // Process alerts — push to alert log + bell notifications
+  if (alerts.length > 0) {
+    alertLogData = alerts.concat(alertLogData);
+    if (alertLogData.length > 500) alertLogData.length = 500;
+    renderAlertLog();
+    var important = alerts.filter(function(a) { return a.severity === 'CRITICAL' || a.severity === 'HIGH'; });
+    for (var ai = 0; ai < Math.min(important.length, 5); ai++) {
+      addBellAlert(important[ai]);
+    }
+    if (important.length > 0) showAlertToast(important[0]);
+  }
+
+  // If RSU panel is open for a device that got new data, refresh it
+  if (selectedRSUDeviceId && measurements.length > 0) {
+    var deviceMeasurements = measurements.filter(function(m) {
+      return (m.deviceInfo_deviceId === selectedRSUDeviceId || m.serial_number === selectedRSUDeviceId);
+    });
+    if (deviceMeasurements.length > 0) {
+      // Use the latest measurement to update the overview tab
+      var latest = deviceMeasurements[deviceMeasurements.length - 1];
+      renderOverviewTab(latest, latestQoERecord, latestWifiSummary);
+      // Also refresh modem data for updated QoE
+      loadRSUModemData();
+    }
+  }
+
+  // Update KPIs and connection lines on any new data
+  if (measurements.length > 0 || alerts.length > 0) {
+    updateRSUKPIs();
+    renderRSUConnectionLines();
+  }
+}
+
+function updateRSUMonitorStatus(stats) {
+  var el = document.getElementById('rsuStatusInfo');
+  if (!el) return;
+  var html = '';
+  if (stats.trackedDevices != null) {
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
+      + '<span>Tracked Devices</span><span style="color:var(--cyan);font-weight:700;">' + stats.trackedDevices + '</span></div>';
+  }
+  if (stats.trackedCells != null) {
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
+      + '<span>Known Cells</span><span style="color:var(--cyan);font-weight:700;">' + stats.trackedCells + '</span></div>';
+  }
+  if (stats.totalAlerts != null) {
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
+      + '<span>Alerts Generated</span><span style="color:' + (stats.totalAlerts > 0 ? 'var(--critical)' : 'var(--green)') + ';font-weight:700;">' + stats.totalAlerts + '</span></div>';
+  }
+  if (stats.queryTimeMs != null) {
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
+      + '<span>Poll Latency</span><span style="color:var(--text-dim);">' + stats.queryTimeMs + 'ms</span></div>';
+  }
+  html += '<div style="display:flex;justify-content:space-between;">'
+    + '<span>Stream</span><span id="rsuStreamStatus" style="font-size:9px;padding:1px 6px;border-radius:3px;'
+    + (rsuStreamConnected ? 'background:var(--green-bg);color:var(--green);">LIVE' : 'background:var(--medium-bg);color:var(--medium);">CONNECTING')
+    + '</span></div>';
+  el.innerHTML = html;
 }
 
 // ---------------------------------------------------------------------------
@@ -5810,11 +6311,20 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---------------------------------------------------------------------------
 async function refreshAll() {
   document.getElementById('lastUpdate').textContent = 'Updated ' + new Date().toLocaleTimeString('en-US', { hour12: false });
-  await loadLiveScan();
-  await loadAlertLog();
-  await loadRSUDevices();
-  await loadKnownSites();
-  countdown = 60;
+  if (currentDeploymentMode === 'RSU') {
+    // RSU mode: skip heavy scan pipeline — real-time data comes via SSE stream
+    await Promise.all([loadRSUDevices(), loadRSUSitesCache(), loadAlertLog()]);
+    updateRSUKPIs();
+    renderRSUConnectionLines();
+    countdown = 30;
+  } else {
+    // SDK mode: full scan pipeline
+    await loadLiveScan();
+    await loadAlertLog();
+    await loadRSUDevices();
+    await loadKnownSites();
+    countdown = 60;
+  }
 }
 
 setInterval(function() {
@@ -5850,6 +6360,10 @@ function initDashboard() {
       };
       document.getElementById('clearAreaBtn').style.display = '';
       if (drawingActive) toggleDrawMode();
+      // Reset RSU marker cache on new polygon (different area = different RSUs)
+      if (mapLayerRSU) mapLayerRSU.clearLayers();
+      rsuMarkerMap = {};
+      rsuInitialFitDone = false;
       updateScanReadiness();
       if (scanStarted) { resetAccumulator(); refreshAll(); }
     });
@@ -5878,8 +6392,8 @@ var currentRSUTab = 'cellular';
 
 function switchRSUTab(tab) {
   currentRSUTab = tab;
-  var tabIds = ['modem','cellular-qoe','wifi-qoe','gnss','spectrum','alerts'];
-  var idMap = { 'modem': 'rsuTabModem', 'cellular-qoe': 'rsuTabCellular-qoe', 'wifi-qoe': 'rsuTabWifi-qoe', 'gnss': 'rsuTabGnss', 'spectrum': 'rsuTabSpectrum', 'alerts': 'rsuTabAlerts' };
+  var tabIds = ['overview','modem','gnss','spectrum','alerts'];
+  var idMap = { 'overview': 'rsuTabOverview', 'modem': 'rsuTabModem', 'gnss': 'rsuTabGnss', 'spectrum': 'rsuTabSpectrum', 'alerts': 'rsuTabAlerts' };
   tabIds.forEach(function(t) {
     var el = document.getElementById(idMap[t]);
     if (el) el.style.display = t === tab ? '' : 'none';
@@ -5892,11 +6406,11 @@ function switchRSUTab(tab) {
 function openRSUPanel(deviceId) {
   selectedRSUDeviceId = deviceId;
   document.getElementById('rsuPanel').classList.add('open');
-  // Set MODEM as default active tab
-  switchRSUTab('modem');
+  // Set OVERVIEW as default active tab
+  switchRSUTab('overview');
   loadRSUPanelData();
   if (rsuPanelRefreshInterval) clearInterval(rsuPanelRefreshInterval);
-  rsuPanelRefreshInterval = setInterval(loadRSUPanelData, 30000);
+  rsuPanelRefreshInterval = setInterval(loadRSUPanelData, 10000); // 10s refresh for real-time
 }
 
 function closeRSUPanel() {
@@ -5942,6 +6456,154 @@ function fmtUptime(seconds) {
   var h = Math.floor(s / 3600); s %= 3600;
   return d + 'd ' + h + 'h';
 }
+
+// ---------------------------------------------------------------------------
+// Sparkline history for QoE metrics (rolling buffer per device)
+// ---------------------------------------------------------------------------
+var rsuSparklineData = {}; // deviceId → { latency: [], jitter: [] }
+var RSU_SPARKLINE_MAX = 30; // last 30 samples
+
+function pushSparkline(deviceId, key, value) {
+  if (!rsuSparklineData[deviceId]) rsuSparklineData[deviceId] = { latency: [], jitter: [] };
+  var arr = rsuSparklineData[deviceId][key];
+  if (value != null && !isNaN(value)) arr.push(Number(value));
+  if (arr.length > RSU_SPARKLINE_MAX) arr.shift();
+}
+
+function renderSparklineSVG(values, color, width, height) {
+  if (!values || values.length < 2) return '';
+  var max = Math.max.apply(null, values);
+  var min = Math.min.apply(null, values);
+  var range = max - min || 1;
+  var points = values.map(function(v, i) {
+    var x = (i / (values.length - 1)) * width;
+    var y = height - ((v - min) / range) * (height - 2) - 1;
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  return '<svg width="' + width + '" height="' + height + '" style="vertical-align:middle;margin-left:8px;">' +
+    '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '</svg>';
+}
+
+function renderQoERow(label, value, unit, sparkValues, thresholds) {
+  if (value == null) return '<div class="rsu-info-row"><span class="rsu-info-label">' + label + '</span><span class="rsu-info-value">--</span></div>';
+  var q = signalQuality(value, thresholds);
+  var displayVal = value.toFixed(1) + unit;
+  var spark = renderSparklineSVG(sparkValues, q.color, 60, 16);
+  return '<div class="rsu-info-row" style="align-items:center;">' +
+    '<span class="rsu-info-label" style="flex:1;">' + label + '</span>' +
+    '<span style="font-size:13px;font-weight:700;color:' + q.color + ';">' + displayVal + '</span>' +
+    spark +
+    '</div>';
+}
+
+/**
+ * Render the consolidated overview tab — called on every panel refresh.
+ * Layout is FIXED (sections never change), only values update.
+ */
+function renderOverviewTab(m, qoeRecord, wifiData) {
+  // --- Signal Quality: Cellular ---
+  renderCellularTab(m);
+
+  // --- Signal Quality: WiFi RSSI ---
+  var wifiEl = document.getElementById('rsuPanelWifiSignal');
+  if (wifiEl) {
+    if (wifiData && wifiData.length > 0) {
+      var bestWifi = wifiData[0];
+      var rssi = bestWifi.avg_signal != null ? Number(bestWifi.avg_signal) : null;
+      var freq = bestWifi.avg_freq ? (Number(bestWifi.avg_freq) > 3000 ? '5 GHz' : '2.4 GHz') : '';
+      wifiEl.innerHTML =
+        '<div style="font-size:9px;color:var(--text-dim);margin-bottom:2px;font-weight:600;letter-spacing:0.5px;">Wi-Fi' + (freq ? ' (' + freq + ')' : '') + '</div>' +
+        renderSignalBar('RSSI', rssi, 'dBm', -100, -20, [-50, -70, -85]);
+    } else {
+      wifiEl.innerHTML = '';
+    }
+  }
+
+  // --- Signal Quality: GNSS compact ---
+  var gnssEl = document.getElementById('rsuPanelGnssCompact');
+  if (gnssEl) {
+    var totalSats = m.satellites_gnss_satellitesNo != null ? Number(m.satellites_gnss_satellitesNo) :
+                    (m.satellites_used != null ? Number(m.satellites_used) : null);
+    var gpsSats = m.satellites_gps_satellitesNo != null ? Number(m.satellites_gps_satellitesNo) : null;
+    var accuracy = m.location_accuracy != null ? Number(m.location_accuracy) :
+                   (m.horizontal_accuracy != null ? Number(m.horizontal_accuracy) : null);
+    var hdop = m.hdop != null ? Number(m.hdop) : null;
+    var pdop = m.pdop != null ? Number(m.pdop) : null;
+    var fixType = accuracy != null ? (accuracy < 5 ? '3D' : accuracy < 20 ? '3D' : '2D') : '--';
+    var fixColor = accuracy != null ? (accuracy < 10 ? '#22c55e' : accuracy < 30 ? '#eab308' : '#ef4444') : 'var(--text-dim)';
+    var satsLabel = totalSats != null ? totalSats : '--';
+    if (gpsSats != null && totalSats != null) satsLabel = gpsSats + '/' + totalSats;
+
+    gnssEl.innerHTML =
+      '<div style="display:flex;gap:16px;font-size:11px;">' +
+        '<div>Fix: <span style="color:' + fixColor + ';font-weight:700;">' + fixType + '</span></div>' +
+        '<div>Sats: <span style="color:var(--cyan);font-weight:700;">' + satsLabel + '</span></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:16px;font-size:11px;margin-top:2px;">' +
+        (hdop != null ? '<div>HDOP: <span style="font-weight:600;">' + hdop.toFixed(1) + '</span></div>' : '') +
+        (pdop != null ? '<div>PDOP: <span style="font-weight:600;">' + pdop.toFixed(1) + '</span></div>' : '') +
+      '</div>';
+  }
+
+  // --- QoE Network ---
+  var qoeEl = document.getElementById('rsuPanelQoeOverview');
+  if (qoeEl) {
+    // Use qoeRecord (from modem_measurements) if available, fallback to measurement data
+    var qm = qoeRecord || m;
+    var latency = qm.internet_latency != null ? Number(qm.internet_latency) :
+                  qm.average_rtt != null ? Number(qm.average_rtt) : null;
+    var jitterVal = qm.internet_jitter != null ? Number(qm.internet_jitter) :
+                    qm.jitter != null ? Number(qm.jitter) : null;
+    var loss = qm.internet_latencyLoss != null ? Number(qm.internet_latencyLoss) :
+               qm.packet_loss != null ? Number(qm.packet_loss) : null;
+    var dl = qm.internet_downloadMbps != null ? Number(qm.internet_downloadMbps) :
+             qm.download_mbps != null ? Number(qm.download_mbps) : null;
+    var ul = qm.internet_uploadMbps != null ? Number(qm.internet_uploadMbps) :
+             qm.upload_mbps != null ? Number(qm.upload_mbps) : null;
+
+    var lossIsRaw = qm.internet_latencyLoss != null;
+    var lossPct = loss != null ? (lossIsRaw ? loss * 100 : loss) : null;
+
+    // Push to sparkline history
+    var did = selectedRSUDeviceId || 'unknown';
+    pushSparkline(did, 'latency', latency);
+    pushSparkline(did, 'jitter', jitterVal);
+    var sparkData = rsuSparklineData[did] || { latency: [], jitter: [] };
+
+    qoeEl.innerHTML =
+      renderQoERow('Latency', latency, 'ms', sparkData.latency, [30, 80, 150]) +
+      renderQoERow('Jitter', jitterVal, 'ms', sparkData.jitter, [5, 15, 30]) +
+      (lossPct != null
+        ? '<div class="rsu-info-row"><span class="rsu-info-label">Packet Loss</span><span class="rsu-info-value" style="font-weight:700;">' + lossPct.toFixed(2) + '%</span></div>'
+        : '<div class="rsu-info-row"><span class="rsu-info-label">Packet Loss</span><span class="rsu-info-value">--</span></div>') +
+      '<div class="rsu-info-row" style="margin-top:4px;"><span class="rsu-info-label">Throughput</span><span class="rsu-info-value">' +
+        (dl != null ? '<span style="color:var(--green);">&darr; ' + dl.toFixed(1) + ' Mbps</span>' : '&darr; --') +
+        ' &nbsp; ' +
+        (ul != null ? '<span style="color:var(--cyan);">&uarr; ' + ul.toFixed(1) + ' Mbps</span>' : '&uarr; --') +
+      '</span></div>';
+  }
+
+  // --- Recent Alerts (compact) ---
+  var alertsEl = document.getElementById('rsuPanelAlertsCompact');
+  if (alertsEl) {
+    var deviceAlerts = alertLogData.filter(function(a) { return a.device_id === selectedRSUDeviceId; });
+    alertsEl.innerHTML = deviceAlerts.length > 0
+      ? deviceAlerts.slice(0, 3).map(function(a) {
+          return '<div style="padding:3px 0;border-bottom:1px solid var(--border);font-size:10px;">' +
+            badge((a.severity || 'LOW').toUpperCase()) + ' <b>' + (a.rule || '?') + '</b>' +
+            '<span style="color:var(--text-dim);margin-left:6px;">' + fmtRelativeTime(a.timestamp) + '</span></div>';
+        }).join('')
+      : '<div style="color:var(--text-dim);font-size:10px;">No recent alerts</div>';
+  }
+
+  // Also render the detailed GNSS tab (if user switches to it)
+  renderGNSSTab(m);
+}
+
+// Track latest QoE record for overview
+var latestQoERecord = null;
+var latestWifiSummary = null;
 
 function renderCellularTab(m) {
   var rsrp = m.signal_rsrp != null ? Number(m.signal_rsrp) : null;
@@ -6564,10 +7226,8 @@ async function loadRSUPanelData() {
     document.getElementById('rsuPanelTemp').textContent = latest.deviceInfo_temperature != null ? Number(latest.deviceInfo_temperature).toFixed(1) + '\u00B0C' : '--';
     document.getElementById('rsuPanelUptime').textContent = fmtUptime(latest.deviceInfo_uptime);
 
-    // Render all tabs with latest data
-    renderCellularTab(latest);
-    renderQoETab(latest);
-    renderGNSSTab(latest);
+    // Render consolidated overview tab (signal + QoE + GNSS + alerts)
+    renderOverviewTab(latest, latestQoERecord, latestWifiSummary);
 
     // Alerts
     var deviceAlerts = alertLogData.filter(function(a) { return a.device_id === selectedRSUDeviceId; });
@@ -6650,6 +7310,7 @@ async function loadRSUModemData() {
       var qoeRes = await authFetch(API_BASE + '/api/rsu/device/' + encodeURIComponent(selectedRSUDeviceId) + '/modem/qoe');
       var qoeJson = await qoeRes.json();
       var qoeRecord = qoeJson.ok ? qoeJson.data : null;
+      latestQoERecord = qoeRecord; // Store for overview tab
 
       if (qoeRecord) {
         var rtt = qoeRecord.average_rtt != null ? Number(qoeRecord.average_rtt) : null;
@@ -6669,10 +7330,22 @@ async function loadRSUModemData() {
           infoRow('Upload', ulMbps != null ? ulMbps.toFixed(1) + ' Mbps' : null)
         ) : '<div style="color:var(--text-dim);font-size:10px;">No throughput data</div>';
 
-        // Also update Cellular QoE tab
-        var qoeEl = document.getElementById('rsuPanelQoe');
-        if (qoeEl && qoeEl.textContent.indexOf('No QoE') >= 0) {
-          renderQoETab(qoeRecord);
+        // Re-render overview QoE section with fresh data
+        var qoeOverviewEl = document.getElementById('rsuPanelQoeOverview');
+        if (qoeOverviewEl) {
+          var did = selectedRSUDeviceId || 'unknown';
+          pushSparkline(did, 'latency', rtt);
+          pushSparkline(did, 'jitter', modemJitter);
+          var sparkData = rsuSparklineData[did] || { latency: [], jitter: [] };
+          qoeOverviewEl.innerHTML =
+            renderQoERow('Latency', rtt, 'ms', sparkData.latency, [30, 80, 150]) +
+            renderQoERow('Jitter', modemJitter, 'ms', sparkData.jitter, [5, 15, 30]) +
+            '<div class="rsu-info-row"><span class="rsu-info-label">Packet Loss</span><span class="rsu-info-value" style="font-weight:700;">' + (pktLoss != null ? pktLoss.toFixed(2) + '%' : '--') + '</span></div>' +
+            '<div class="rsu-info-row" style="margin-top:4px;"><span class="rsu-info-label">Throughput</span><span class="rsu-info-value">' +
+              (dlMbps != null ? '<span style="color:var(--green);">&darr; ' + dlMbps.toFixed(1) + ' Mbps</span>' : '&darr; --') +
+              ' &nbsp; ' +
+              (ulMbps != null ? '<span style="color:var(--cyan);">&uarr; ' + ulMbps.toFixed(1) + ' Mbps</span>' : '&uarr; --') +
+            '</span></div>';
         }
       }
     } catch (qoeErr) { console.warn('[RSU QoE] Load error:', qoeErr.message); }
@@ -6728,6 +7401,7 @@ async function loadRSUWifiData(latestMeasurement) {
     var summaryRes = await authFetch(API_BASE + '/api/rsu/device/' + encodeURIComponent(selectedRSUDeviceId) + '/wifi/summary');
     var summaryJson = await summaryRes.json();
     var summary = summaryJson.ok ? (summaryJson.data || []) : [];
+    latestWifiSummary = summary; // Store for overview tab
 
     // Update spectrum with WiFi data
     if (latestMeasurement) updateSpectrumData(latestMeasurement, summary);

@@ -1624,6 +1624,67 @@ async function getRSUWifiSummary(deviceId, startTs = null, endTs = null) {
   return rs.json();
 }
 
+// ---------------------------------------------------------------------------
+// RSU Real-Time Delta Queries — fetch only measurements newer than watermark
+// Used by rsuMonitor.js for 5-second poll loop (no GROUP BY, no dedup overhead)
+// ---------------------------------------------------------------------------
+
+async function getNewRSUMeasurements(bbox, sinceTimestamp) {
+  // Normalize timestamp to 'YYYY-MM-DD HH:MM:SS' format for toDateTime64
+  const since = String(sinceTimestamp).replace('T', ' ').replace('Z', '').replace(/\.\d+$/, '');
+  const params = { since };
+  let bboxClause = '';
+  if (bbox) {
+    bboxClause = ` AND location_lat_rounded >= {latMin:Float64}
+                    AND location_lat_rounded <= {latMax:Float64}
+                    AND location_lng_rounded >= {lngMin:Float64}
+                    AND location_lng_rounded <= {lngMax:Float64}`;
+    params.latMin = bbox.latMin;
+    params.latMax = bbox.latMax;
+    params.lngMin = bbox.lngMin;
+    params.lngMax = bbox.lngMax;
+  }
+  const rs = await queryWithRetry({
+    query: `SELECT ${RSU_DETAIL_COLUMNS}
+            FROM measurements
+            WHERE source = 'modem'
+              AND timestamp > toDateTime64({since:String}, 3, 'UTC')
+              ${bboxClause}
+            ORDER BY timestamp ASC
+            LIMIT 500`,
+    query_params: params,
+    format: 'JSONEachRow',
+  });
+  return rs.json();
+}
+
+async function getNewModemMeasurements(bbox, sinceTimestamp) {
+  const since = String(sinceTimestamp).replace('T', ' ').replace('Z', '').replace(/\.\d+$/, '');
+  const params = { since };
+  let bboxClause = '';
+  if (bbox) {
+    bboxClause = ` AND coordinates.2 >= {latMin:Float64}
+                    AND coordinates.2 <= {latMax:Float64}
+                    AND coordinates.1 >= {lngMin:Float64}
+                    AND coordinates.1 <= {lngMax:Float64}`;
+    params.latMin = bbox.latMin;
+    params.latMax = bbox.latMax;
+    params.lngMin = bbox.lngMin;
+    params.lngMax = bbox.lngMax;
+  }
+  const rs = await queryWithRetry({
+    query: `SELECT ${MODEM_MEAS_COLUMNS}
+            FROM modem_measurements
+            WHERE timestamp > toDateTime64({since:String}, 3, 'UTC')
+              ${bboxClause}
+            ORDER BY timestamp ASC
+            LIMIT 1000`,
+    query_params: params,
+    format: 'JSONEachRow',
+  });
+  return rs.json();
+}
+
 module.exports = {
   healthCheck,
   discoverSitesSchema,
@@ -1682,6 +1743,8 @@ module.exports = {
   getModemMeasurementDevices,
   getRSUModemMeasurements,
   getRSUModemMeasurementsTimeline,
+  getNewRSUMeasurements,
+  getNewModemMeasurements,
   getScannedSites,
   describeTable,
   close,

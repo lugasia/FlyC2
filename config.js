@@ -193,6 +193,12 @@ const MCC_REGISTRY = {
 // Clients select a region and the agent flags any MCC outside the expected set
 // ---------------------------------------------------------------------------
 const REGION_PRESETS = {
+  GR: {
+    name: 'Greece',
+    flag: '🇬🇷',
+    expectedMCC: ['202'],
+    bbox: { latMin: 34.8, latMax: 41.8, lngMin: 19.4, lngMax: 29.6 },
+  },
   IL: {
     name: 'Israel',
     flag: '🇮🇱',
@@ -360,10 +366,29 @@ const config = {
     pollIntervalMs: parseInt(process.env.POLL_INTERVAL_MS, 10) || 60000,
     batchSize: parseInt(process.env.BATCH_SIZE, 10) || 50000,
     suspicionThreshold: parseFloat(process.env.SUSPICION_THRESHOLD) || 0.6,
-    region: process.env.AGENT_REGION || 'GLOBAL',
+    region: process.env.AGENT_REGION || 'GR',
     // Deployment mode: 'SDK' (mobile SDK data) or 'RSU' (Remote Sensing Units / modems)
     // RSU mode shows device icons on map and treats all measurements as modem data
     deploymentMode: (process.env.DEPLOYMENT_MODE || 'SDK').toUpperCase(),
+
+    // RSU real-time monitoring
+    rsuPollIntervalMs: parseInt(process.env.RSU_POLL_INTERVAL_MS, 10) || 5000,
+    rsuBootstrapMinutes: 5,   // On startup, load this many minutes of history to build state
+    rsuAlertCooldowns: {      // Per-device cooldown per rule (seconds). 0 = state machine handles it.
+      RSU_MCC_MISMATCH: 0,       // state flag: foreignMCCActive
+      RSU_NEW_CELL: 300,          // 5min — cell can appear/disappear
+      RSU_CELL_CHANGE: 60,        // 1min — handover ping-pong
+      RSU_TAC_JUMP: 120,          // 2min — rapid oscillation
+      RSU_SIGNAL_DEGRADATION: 0,  // state flag: signalDegradationActive
+      RSU_CELLULAR_JAMMING: 0,    // state flag: jammingActive
+      RSU_RSRQ_DEGRADATION: 0,    // state flag: rsrqDegradationActive
+      RSU_GPS_JAMMING: 0,         // state flag: gpsJammingActive
+      RSU_GPS_SPOOFING: 0,        // state flag: gpsSpoofingActive
+      RSU_NETWORK_DOWNGRADE: 120, // 2min
+      RSU_UNKNOWN_SITE: 0,        // tracked per-eNB in knownUnknownENBs
+      RSU_DEVICE_OFFLINE: 60,
+    },
+    rsuOfflineThresholdMs: 30000, // Device considered offline after 30s of no data
   },
 
   severity: {

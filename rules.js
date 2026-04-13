@@ -353,6 +353,12 @@ async function runRules(measurements, knownCells, expectedMCCs = [], regionBbox 
     const hasEci = m.cell_eci && Number(m.cell_eci) !== 0;
     const hasPci = m.cell_pci != null && m.cell_pci !== '';
     if (!hasEnb && !hasEci && hasPci) {
+      // Skip enrichment for measurements with no valid PLMN (MCC 000 or empty).
+      // These are bad/garbage measurements — pinning them to a real site via PCI
+      // alone is misleading and gives false confidence.
+      const mccRaw = m.network_mcc != null ? String(m.network_mcc) : '';
+      if (mccRaw === '0' || mccRaw === '000' || mccRaw === '') continue;
+
       const mPlmn = normalizePlmn(m.network_PLMN) ||
         (m.network_mcc && m.network_mnc
           ? `${String(m.network_mcc).padStart(3, '0')}-${String(m.network_mnc).padStart(2, '0')}`
